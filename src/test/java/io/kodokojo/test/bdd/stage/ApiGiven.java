@@ -16,6 +16,7 @@ import io.kodokojo.commons.config.ApplicationConfig;
 import io.kodokojo.commons.config.MicroServiceConfig;
 import io.kodokojo.commons.config.VersionConfig;
 import io.kodokojo.commons.config.module.RedisReadOnlyModule;
+import io.kodokojo.commons.config.module.UtilityServiceModule;
 import io.kodokojo.test.DockerTestSupport;
 import io.kodokojo.test.TestSecurityModule;
 import io.kodokojo.test.TestUtils;
@@ -156,7 +157,7 @@ public class ApiGiven<SELF extends ApiGiven<?>> extends ApplicationGiven<SELF> {
 */
         };
 
-        injector = Guice.createInjector(eventBusModule, redisModule, versionModule, new TestSecurityModule(), new ServiceModule(),
+        injector = Guice.createInjector(eventBusModule, redisModule, versionModule, new TestSecurityModule(), new ServiceModule(), new UtilityServiceModule(),
                 new HttpModule(), new UserEndpointModule(), new ProjectEndpointModule(),
                 new RedisReadOnlyModule());
         Launcher.INJECTOR = injector;

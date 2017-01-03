@@ -83,6 +83,7 @@ public class ProjectSparkEndpoint extends AbstractSparkEndpoint {
 
             EventBuilder eventBuilder = eventBuilderFactory.create();
             eventBuilder.setEventType(Event.PROJECTCONFIG_CREATION_REQUEST);
+            eventBuilder.addCustomHeader(Event.REQUESTER_ID_CUSTOM_HEADER, requester.getIdentifier());
             eventBuilder.setPayload(dto);
             if (requester != null) {
                 eventBuilder.addCustomHeader(Event.REQUESTER_ID_CUSTOM_HEADER, requester.getIdentifier());
@@ -141,6 +142,7 @@ public class ProjectSparkEndpoint extends AbstractSparkEndpoint {
 
                 EventBuilder eventBuilder = eventBuilderFactory.create();
                 eventBuilder.setEventType(Event.PROJECTCONFIG_CHANGE_USER_REQUEST);
+                eventBuilder.addCustomHeader(Event.REQUESTER_ID_CUSTOM_HEADER, requester.getIdentifier());
                 ProjectConfigurationChangeUserRequest projectConfigurationChangeUserRequest = new ProjectConfigurationChangeUserRequest(requester, io.kodokojo.commons.event.payload.TypeChange.ADD, identifier, userIdsToAdd);
                 eventBuilder.setPayload(projectConfigurationChangeUserRequest);
                 eventBus.send(eventBuilder.build());
@@ -172,6 +174,7 @@ public class ProjectSparkEndpoint extends AbstractSparkEndpoint {
                 }
                 EventBuilder eventBuilder = eventBuilderFactory.create();
                 eventBuilder.setEventType(Event.PROJECTCONFIG_CHANGE_USER_REQUEST);
+                eventBuilder.addCustomHeader(Event.REQUESTER_ID_CUSTOM_HEADER, requester.getIdentifier());
                 ProjectConfigurationChangeUserRequest projectConfigurationChangeUserRequest = new ProjectConfigurationChangeUserRequest(requester, TypeChange.REMOVE, identifier, userIdsToRemove);
                 eventBuilder.setPayload(projectConfigurationChangeUserRequest);
                 eventBus.send(eventBuilder.build());
@@ -199,12 +202,20 @@ public class ProjectSparkEndpoint extends AbstractSparkEndpoint {
 
                     EventBuilder eventBuilder = eventBuilderFactory.create();
                     eventBuilder.setEventType(Event.PROJECTCONFIG_START_REQUEST);
+                    eventBuilder.addCustomHeader(Event.REQUESTER_ID_CUSTOM_HEADER, requester.getIdentifier());
                     eventBuilder.setJsonPayload(projectConfigurationId);
+
                     Event reply = eventBus.request(eventBuilder.build(), 1, TimeUnit.MINUTES);
 
-                    response.status(201);
-                    String projectIdStarted = reply.getPayload();
-                    return projectIdStarted;
+                    if (reply != null) {
+
+                        response.status(201);
+                        String projectIdStarted = reply.getPayload();
+                        return projectIdStarted;
+                    } else {
+                        halt(408, "Unable to know if project " + projectConfigurationId + " had been started or not.");
+                        return "";
+                    }
                 } else {
                     halt(409, "Project already exist.");
                 }

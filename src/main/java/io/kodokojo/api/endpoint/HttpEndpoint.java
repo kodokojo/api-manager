@@ -69,7 +69,7 @@ public class HttpEndpoint extends AbstractSparkEndpoint implements ApplicationLi
 
         Spark.port(port);
 
-        //webSocket(BASE_API + "/event", WebSocketEntryPoint.class);
+        webSocket(BASE_API + "/event", WebSocketEntryPoint.class);
 
         staticFileLocation("webapp");
 
@@ -98,7 +98,7 @@ public class HttpEndpoint extends AbstractSparkEndpoint implements ApplicationLi
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug("Ip {} request url {}", request.ip(), request.url());
             if (LOGGER.isTraceEnabled()) {
-
+                LOGGER.trace("Request schemas {}", request.scheme());
             }
         }
 

@@ -23,7 +23,7 @@ import com.tngtech.jgiven.annotation.ExpectedScenarioState;
 import com.tngtech.jgiven.annotation.ProvidedScenarioState;
 import com.tngtech.jgiven.annotation.Quoted;
 import io.kodokojo.commons.dto.BrickConfigDto;
-import io.kodokojo.commons.dto.WebSocketMessage;
+import io.kodokojo.commons.dto.BrickEventStateWebSocketMessage;
 import io.kodokojo.commons.dto.WebSocketMessageGsonAdapter;
 import io.kodokojo.test.bdd.stage.HttpUserSupport;
 import io.kodokojo.test.bdd.stage.UserInfo;
@@ -146,9 +146,9 @@ public class AccessRestWhen<SELF extends AccessRestWhen<?>> extends Stage<SELF> 
                         @Override
                         public void onMessage(String messsage) {
                             GsonBuilder builder = new GsonBuilder();
-                            builder.registerTypeAdapter(WebSocketMessage.class, new WebSocketMessageGsonAdapter());
+                            builder.registerTypeAdapter(BrickEventStateWebSocketMessage.class, new WebSocketMessageGsonAdapter());
                             Gson gson = builder.create();
-                            WebSocketMessage response = gson.fromJson(messsage, WebSocketMessage.class);
+                            BrickEventStateWebSocketMessage response = gson.fromJson(messsage, BrickEventStateWebSocketMessage.class);
                             LOGGER.info("Receive WebSocket mesage : {}", response);
                             if ("user".equals(response.getEntity())
                                     && "authentication".equals(response.getAction())

@@ -33,6 +33,7 @@ import org.junit.Test;
 
 @As("User creation scenarii")
 @User
+@Ignore
 public class UserIntTest extends ScenarioTest<ApiGiven<?>, ApplicationWhen<?>, ApplicationThen<?>> {
 
     @Rule

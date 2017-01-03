@@ -17,13 +17,47 @@
  */
 package io.kodokojo.api.endpoint;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonObject;
+import io.kodokojo.api.Launcher;
+import io.kodokojo.commons.dto.BrickEventStateWebSocketMessage;
+import io.kodokojo.commons.dto.WebSocketMessageGsonAdapter;
+import io.kodokojo.commons.event.Event;
+import io.kodokojo.commons.event.EventBuilder;
+import io.kodokojo.commons.event.EventBus;
+import io.kodokojo.commons.event.GsonEventSerializer;
+import io.kodokojo.commons.model.ProjectConfiguration;
+import io.kodokojo.commons.model.User;
+import io.kodokojo.commons.service.BrickUrlFactory;
+import io.kodokojo.commons.service.actor.message.BrickStateEvent;
+import io.kodokojo.commons.service.repository.EntityFetcher;
+import io.kodokojo.commons.service.repository.ProjectFetcher;
+import io.kodokojo.commons.service.repository.UserFetcher;
+import javaslang.control.Try;
+import org.apache.commons.collections.IteratorUtils;
+import org.apache.commons.lang.StringUtils;
+import org.eclipse.jetty.websocket.api.Session;
+import org.eclipse.jetty.websocket.api.annotations.OnWebSocketClose;
+import org.eclipse.jetty.websocket.api.annotations.OnWebSocketConnect;
+import org.eclipse.jetty.websocket.api.annotations.OnWebSocketMessage;
 import org.eclipse.jetty.websocket.api.annotations.WebSocket;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+import static java.util.Objects.requireNonNull;
 
 //  WebSocket close event code https://developer.mozilla.org/fr/docs/Web/API/CloseEvent
 @WebSocket
 //public class WebSocketEntryPoint implements BrickStateEventListener {
-public class WebSocketEntryPoint {
-/*
+public class WebSocketEntryPoint implements EventBus.EventListener {
+
     private static final Logger LOGGER = LoggerFactory.getLogger(WebSocketEntryPoint.class);
 
     public static final long USER_VALIDATION_TIMEOUT = 10000;
@@ -34,7 +68,11 @@ public class WebSocketEntryPoint {
 
     private final UserFetcher userRepository;
 
-    private final ProjectFetcher projectRepository;
+    private final ProjectFetcher projectFetcher;
+
+    private final EntityFetcher entityFetcher;
+
+    private final EventBus eventBus;
 
     private final BrickUrlFactory brickUrlFactory;
 
@@ -42,7 +80,8 @@ public class WebSocketEntryPoint {
         @Override
         protected Gson initialValue() {
             GsonBuilder builder = new GsonBuilder();
-            builder.registerTypeAdapter(WebSocketMessage.class, new WebSocketMessageGsonAdapter());
+            builder.registerTypeAdapter(BrickEventStateWebSocketMessage.class, new WebSocketMessageGsonAdapter());
+            builder.registerTypeAdapter(Event.class, new GsonEventSerializer());
             return builder.create();
         }
     };
@@ -54,10 +93,12 @@ public class WebSocketEntryPoint {
         sessions = new ConcurrentHashMap<>();
         userConnectedSession = new ConcurrentHashMap<>();
         userRepository = Launcher.INJECTOR.getInstance(UserFetcher.class);
-        projectRepository = Launcher.INJECTOR.getInstance(ProjectFetcher.class);
+        projectFetcher = Launcher.INJECTOR.getInstance(ProjectFetcher.class);
+        entityFetcher = Launcher.INJECTOR.getInstance(EntityFetcher.class);
         brickUrlFactory = Launcher.INJECTOR.getInstance(BrickUrlFactory.class);
-        BrickStateEventDispatcher msgDispatcher = Launcher.INJECTOR.getInstance(BrickStateEventDispatcher.class);
-        msgDispatcher.addListener(this);
+        eventBus = Launcher.INJECTOR.getInstance(EventBus.class);
+        LOGGER.info("WebSocketEntryPoint available");
+        eventBus.addEventListener(this);
     }
 
     @OnWebSocketConnect
@@ -82,12 +123,12 @@ public class WebSocketEntryPoint {
                 session.close(); // To late to connect.
             } else {
                 Gson gson = localGson.get();
-                WebSocketMessage webSocketMessage = gson.fromJson(message, WebSocketMessage.class);
+                BrickEventStateWebSocketMessage brickEventStateWebSocketMessage = gson.fromJson(message, BrickEventStateWebSocketMessage.class);
                 JsonObject data = null;
-                if ("user".equals(webSocketMessage.getEntity())
-                        && "authentication".equals(webSocketMessage.getAction())
-                        && webSocketMessage.getData().has("authorization")) {
-                    data = webSocketMessage.getData();
+                if ("user".equals(brickEventStateWebSocketMessage.getEntity())
+                        && "authentication".equals(brickEventStateWebSocketMessage.getAction())
+                        && brickEventStateWebSocketMessage.getData().has("authorization")) {
+                    data = brickEventStateWebSocketMessage.getData();
                     String encodedAutorization = data.getAsJsonPrimitive("authorization").getAsString();
                     if (encodedAutorization.startsWith("Basic ")) {
                         String encodedCredentials = encodedAutorization.substring("Basic ".length());
@@ -108,7 +149,7 @@ public class WebSocketEntryPoint {
                                     JsonObject dataValidate = new JsonObject();
                                     dataValidate.addProperty("message", "success");
                                     dataValidate.addProperty("identifier", user.getIdentifier());
-                                    WebSocketMessage response = new WebSocketMessage("user", "authentication", dataValidate);
+                                    BrickEventStateWebSocketMessage response = new BrickEventStateWebSocketMessage("user", "authentication", dataValidate);
                                     String responseStr = gson.toJson(response);
                                     session.getRemote().sendString(responseStr);
                                     if (LOGGER.isDebugEnabled()) {
@@ -160,61 +201,30 @@ public class WebSocketEntryPoint {
 
     }
 
-    @Override
-    public void receive(BrickStateEvent brickStateEvent) {
-        if (brickStateEvent == null) {
-            throw new IllegalArgumentException("brickStateEvent must be defined.");
-        }
-        WebSocketMessage message = convertToWebSocketMessage(brickStateEvent);
-        String projectConfigurationIdentifier = brickStateEvent.getProjectConfigurationIdentifier();
-        ProjectConfiguration projectConfiguration = projectRepository.getProjectConfigurationById(projectConfigurationIdentifier);
-        Iterator<User> admins = projectConfiguration.getAdmins();
-        List<String> adminIds = new ArrayList<>();
-        admins.forEachRemaining(admin -> adminIds.add(admin.getIdentifier()));
-        adminIds.stream().forEach(adminId -> {
-            UserSession ownerSession = userConnectedSession.get(adminId);
-            if (ownerSession != null) {
-                sendMessageToUser(message, ownerSession);
-                projectConfiguration.getUsers().forEachRemaining(user -> {
-                    UserSession session = userConnectedSession.get(user.getIdentifier());
-                    if (session != null && !ownerSession.getUser().getIdentifier().equals(user.getIdentifier())) {
-                        sendMessageToUser(message, session);
-                        LOGGER.info("Send message to {} :{}", ownerSession.getUser().getUsername(), message);
-                    }
-                });
-            }
-        });
-    }
-
-    private void sendMessageToUser(WebSocketMessage message, UserSession userSession) {
-        Gson gson = localGson.get();
-        String json = gson.toJson(message);
+    private void sendMessageToUser(String message, UserSession userSession) {
         try {
-            userSession.getSession().getRemote().sendString(json);
-            if (LOGGER.isDebugEnabled()) {
-                LOGGER.debug("Following message sent to user {} : {}", userSession.getUser().getUsername(), json);
-            }
-            LOGGER.info("Following message sent to user {} : {}", userSession.getUser().getUsername(), json);
+            userSession.getSession().getRemote().sendString(message);
+            LOGGER.info("Following message sent to user {} : {}", userSession.getUser().getUsername(), message);
         } catch (IOException e) {
             LOGGER.error("Unable to notify user {}.", userSession.getUser().getUsername());
         }
     }
 
-    private WebSocketMessage convertToWebSocketMessage(BrickStateEvent brickStateEvent) {
+    private BrickEventStateWebSocketMessage convertToBrickEventStateWebSocketMessage(BrickStateEvent brickStateEvent) {
         JsonObject data = new JsonObject();
         data.addProperty("projectConfiguration", brickStateEvent.getProjectConfigurationIdentifier());
         data.addProperty("brickType", brickStateEvent.getBrickType());
         data.addProperty("brickName", brickStateEvent.getBrickName());
         data.addProperty("state", brickStateEvent.getState().name());
         if (brickStateEvent.getState() == BrickStateEvent.State.RUNNING) {
-            ProjectConfiguration projectConfiguration = projectRepository.getProjectConfigurationById(brickStateEvent.getProjectConfigurationIdentifier());
+            ProjectConfiguration projectConfiguration = projectFetcher.getProjectConfigurationById(brickStateEvent.getProjectConfigurationIdentifier());
             data.addProperty("url", "https://" + brickUrlFactory.forgeUrl(projectConfiguration.getName(), brickStateEvent.getStackName(), brickStateEvent.getBrickType(), brickStateEvent.getBrickName()));
         }
         if (brickStateEvent.getState() == BrickStateEvent.State.ONFAILURE) {
             data.addProperty("message", brickStateEvent.getMessage());
         }
 
-        return new WebSocketMessage("brick", "updateState", data);
+        return new BrickEventStateWebSocketMessage("brick", "updateState", data);
     }
 
     private UserSession sessionIsValidated(Session session) {
@@ -227,6 +237,48 @@ public class WebSocketEntryPoint {
                 res = current;
             }
         }
+        return res;
+    }
+
+    @Override
+    public Try<Boolean> receive(Event event) {
+        requireNonNull(event, "event must be defined.");
+        LOGGER.debug("Receive event:\n{}", event);
+        String broadcastFrom = event.getCustom().get(Event.BROADCAST_FROM_CUSTOM_HEADER);
+        if (StringUtils.isBlank(broadcastFrom) && !eventBus.getFrom().equals(broadcastFrom)) {
+
+            eventBus.broadcastToSameService(event);
+            Set<UserSession> userSessions = new HashSet<>();
+            if (event.getCustom().containsKey(Event.PROJECTCONFIGURATION_ID_CUSTOM_HEADER)) {
+                Set<UserSession> usersToNotifyed = usersToNotifyed(projectFetcher.getProjectConfigurationById(event.getCustom().get(Event.PROJECTCONFIGURATION_ID_CUSTOM_HEADER)));
+                userSessions.addAll(usersToNotifyed);
+            } else if (event.getCustom().containsKey(Event.ENTITY_ID_CUSTOM_HEADER)) {
+                String entityId = event.getCustom().get(Event.ENTITY_ID_CUSTOM_HEADER);
+                List<ProjectConfiguration> projectConfigurations = IteratorUtils.toList(entityFetcher.getEntityById(entityId).getProjectConfigurations());
+                Set<UserSession> collect = projectConfigurations.stream().flatMap(p -> usersToNotifyed(p).stream()).collect(Collectors.toSet());
+                userSessions.addAll(collect);
+            }
+
+            Gson gson = localGson.get();
+            String jsonEven = gson.toJson(event);
+            userSessions.forEach(u -> sendMessageToUser(jsonEven, u));
+        }
+
+        return Try.success(Boolean.TRUE);
+    }
+
+    private Set<UserSession> usersToNotifyed(ProjectConfiguration projectConfiguration) {
+        assert projectConfiguration != null : "projectConfiguration mus be defined.";
+
+        Function<User, UserSession> userUserSessionMapper = u -> userConnectedSession.get(u.getIdentifier());
+
+        Set<UserSession> res = ((List<User>) IteratorUtils.toList(projectConfiguration.getAdmins())).stream()
+                .map(userUserSessionMapper)
+                .collect(Collectors.toSet());
+        ((List<User>) IteratorUtils.toList(projectConfiguration.getUsers())).stream()
+                .map(userUserSessionMapper)
+                .forEach(res::add);
+
         return res;
     }
 
@@ -261,5 +313,5 @@ public class WebSocketEntryPoint {
                 this.lastActivityDate = lastActivityDate;
         }
     }
-*/
+
 }

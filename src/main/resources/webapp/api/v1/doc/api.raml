@@ -252,7 +252,7 @@ schemas:
             description:
               Project configuration not found.
 /project:
-  /{projectConfigurationIdentifier}:
+  /{projectConfigurationId}:
     post:
       description: Create and Starct a Project with given Project configuration
       securedBy: [basic]
@@ -302,7 +302,7 @@ schemas:
               example: |
                 {
                   "identifier": "b1392a68c1ea01d1e445f9464351f67af86c5e14",
-                  "projectConfigurationIdentifier": "1e25e0ca2fc382f332be16f1342d152eacedb434",
+                  "projectConfigurationId": "1e25e0ca2fc382f332be16f1342d152eacedb434",
                   "name": "jpascal",
                   "snapshotDate": "May 16, 2016 1:31:26 PM",
                   "stacks": [
@@ -311,7 +311,7 @@ schemas:
                       "stackType": "BUILD",
                       "brickStateEvents": [
                         {
-                          "projectConfigurationIdentifier": "1e25e0ca2fc382f332be16f1342d152eacedb434",
+                          "projectConfigurationId": "1e25e0ca2fc382f332be16f1342d152eacedb434",
                           "brickType": "CI",
                           "stackName": "build-A",
                           "brickName": "jenkins",
@@ -320,7 +320,7 @@ schemas:
                           "url": "https://ci-jpascal.kodokojo.io"
                         },
                         {
-                          "projectConfigurationIdentifier": "1e25e0ca2fc382f332be16f1342d152eacedb434",
+                          "projectConfigurationId": "1e25e0ca2fc382f332be16f1342d152eacedb434",
                           "brickType": "REPOSITORY",
                           "stackName": "build-A",
                           "brickName": "nexus",
@@ -329,7 +329,7 @@ schemas:
                           "url": "https://repository-jpascal.kodokojo.io"
                         },
                         {
-                          "projectConfigurationIdentifier": "1e25e0ca2fc382f332be16f1342d152eacedb434",
+                          "projectConfigurationId": "1e25e0ca2fc382f332be16f1342d152eacedb434",
                           "brickType": "SCM",
                           "stackName": "build-A",
                           "brickName": "gitlab",

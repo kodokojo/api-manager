@@ -21,13 +21,16 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import io.kodokojo.api.service.ReCaptchaService;
+import io.kodokojo.api.service.authentification.SimpleCredential;
 import io.kodokojo.commons.dto.UserCreationDto;
 import io.kodokojo.commons.dto.UserDto;
 import io.kodokojo.commons.dto.UserProjectConfigIdDto;
-import io.kodokojo.api.service.ReCaptchaService;
-import io.kodokojo.api.service.authentification.SimpleCredential;
 import io.kodokojo.commons.dto.UserUpdateDto;
-import io.kodokojo.commons.event.*;
+import io.kodokojo.commons.event.Event;
+import io.kodokojo.commons.event.EventBuilder;
+import io.kodokojo.commons.event.EventBuilderFactory;
+import io.kodokojo.commons.event.EventBus;
 import io.kodokojo.commons.event.payload.UserCreationReply;
 import io.kodokojo.commons.event.payload.UserCreationRequest;
 import io.kodokojo.commons.model.User;
@@ -148,7 +151,7 @@ public class UserSparkEndpoint extends AbstractSparkEndpoint {
             Event reply = eventBus.request(eventBuilder.build(), 30, TimeUnit.SECONDS);
 
             if (reply == null) {
-                halt(500, "Unable to create user " + username +" in less than 30 seconds.");
+                halt(500, "Unable to create user " + username + " in less than 30 seconds.");
             } else {
                 UserCreationReply userCreationReply = reply.getPayload(UserCreationReply.class);
                 if (userCreationReply.isUserInWaitingList()) {
@@ -174,12 +177,14 @@ public class UserSparkEndpoint extends AbstractSparkEndpoint {
         post(BASE_API + "/user", JSON_CONTENT_TYPE, (request, response) -> {
 
             LOGGER.debug("Require a new user Identifier.");
-            EventBuilder eventBuilder = eventBuilderFactory.create();
-            eventBuilder.setEventType(Event.USER_IDENTIFIER_CREATION_REQUEST);
-            eventBuilder.setJsonPayload("");
+            EventBuilder eventBuilder = eventBuilderFactory.create()
+                    .setEventType(Event.USER_IDENTIFIER_CREATION_REQUEST)
+                    .setJsonPayload("");
             Event reply = eventBus.request(eventBuilder.build(), 30, TimeUnit.SECONDS);
-            if (reply != null) {
-                LOGGER.debug("get result :{}", reply.getPayload().substring(1, reply.getPayload().length()-1));
+            if (reply != null && StringUtils.isNotBlank(reply.getPayload())) {
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug("get result :{}", reply.getPayload().substring(1, reply.getPayload().length() - 1));
+                }
                 return reply.getPayload();
             }
             halt(500, "An unexpected error occur while trying to generate a new user Id.");
