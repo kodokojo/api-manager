@@ -1,5 +1,5 @@
 /**
- * Kodo Kojo - Software factory done right
+ * Kodo Kojo - API frontend which dispatch REST event to Http services or publish event on EvetnBus.
  * Copyright © 2016 Kodo Kojo (infos@kodokojo.io)
  *
  * This program is free software: you can redistribute it and/or modify
