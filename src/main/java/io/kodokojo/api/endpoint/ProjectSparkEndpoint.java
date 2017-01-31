@@ -200,10 +200,10 @@ public class ProjectSparkEndpoint extends AbstractSparkEndpoint {
                 String projectId = projectFetcher.getProjectIdByProjectConfigurationId(projectConfigurationId);
                 if (StringUtils.isBlank(projectId)) {
 
-                    EventBuilder eventBuilder = eventBuilderFactory.create();
-                    eventBuilder.setEventType(Event.PROJECTCONFIG_START_REQUEST);
-                    eventBuilder.addCustomHeader(Event.REQUESTER_ID_CUSTOM_HEADER, requester.getIdentifier());
-                    eventBuilder.setJsonPayload(projectConfigurationId);
+                    EventBuilder eventBuilder = eventBuilderFactory.create()
+                            .setEventType(Event.PROJECTCONFIG_START_REQUEST)
+                            .addCustomHeader(Event.REQUESTER_ID_CUSTOM_HEADER, requester.getIdentifier())
+                            .setJsonPayload(projectConfigurationId);
 
                     Event reply = eventBus.request(eventBuilder.build(), 1, TimeUnit.MINUTES);
 
