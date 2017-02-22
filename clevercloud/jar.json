@@ -1,0 +1,9 @@
+{
+  "build": {
+    "type": "maven",
+    "goal": "-Dmaven.test.skip=true package"
+  },
+  "deploy": {
+    "jarName": "target/api-1.0-SNAPSHOT-runnable.jar"
+  }
+}
