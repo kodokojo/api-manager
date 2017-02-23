@@ -8,7 +8,7 @@ node() {
             def commitMessage = commitMessage()
             slackSend channel: '#dev', color: '#6CBDEC', message: "*Starting * build job ${env.JOB_NAME} ${env.BUILD_NUMBER} from branch *${env.BRANCH_NAME}* (<${env.BUILD_URL}|Open>).\nCommit `${commit}` message :\n```${commitMessage}```"
             try {
-                def mvnStatus = sh returnStatus: true, script: 'mvn -B install'
+                def mvnStatus = sh returnStatus: true, script: 'mvn -B -U install'
                 if (mvnStatus == 0) {
                     slackSend channel: '#dev', color: 'good', message: "Building job ${env.JOB_NAME} in version $version from branch *${env.BRANCH_NAME}* on commit `${commit}` \n Job ${env.BUILD_NUMBER} (<${env.BUILD_URL}|Open>) *SUCCESS*."
                     //step([$class: 'JUnitResultArchiver', testResults: '**/target/surefire-reports/*.xml'])
