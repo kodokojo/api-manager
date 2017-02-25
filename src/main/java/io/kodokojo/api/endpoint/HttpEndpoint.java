@@ -23,7 +23,9 @@ import io.kodokojo.commons.event.EventBuilderFactory;
 import io.kodokojo.commons.event.EventBus;
 import io.kodokojo.commons.model.User;
 import io.kodokojo.api.service.authentification.SimpleCredential;
+import io.kodokojo.commons.service.healthcheck.HttpHealthCheckEndpoint;
 import io.kodokojo.commons.service.lifecycle.ApplicationLifeCycleListener;
+import io.kodokojo.commons.spark.SparkEndpoint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import spark.Request;
@@ -108,6 +110,7 @@ public class HttpEndpoint extends AbstractSparkEndpoint implements ApplicationLi
         boolean authenticationRequired = true;
         // White list of url which not require to have an identifier.
         if (requestMatch("POST", BASE_API + "/user", request) ||
+                requestMatch("GET", HttpHealthCheckEndpoint.HEALTHCHECK_PATH, request) ||
                 requestMatch("GET", BASE_API, request) ||
                 requestMatch("GET", BASE_API + "/event(/)?", request) ||
                 requestMatch("GET", BASE_API + "/doc(/)?.*", request) ||

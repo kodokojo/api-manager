@@ -20,7 +20,7 @@ package io.kodokojo.api.config.module.endpoint;
 import com.google.inject.AbstractModule;
 import com.google.inject.multibindings.Multibinder;
 import io.kodokojo.api.endpoint.BrickSparkEndpoint;
-import io.kodokojo.api.endpoint.SparkEndpoint;
+import io.kodokojo.commons.spark.SparkEndpoint;
 
 public class BrickEndpointModule extends AbstractModule {
 

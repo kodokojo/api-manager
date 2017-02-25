@@ -23,7 +23,7 @@ import com.google.inject.Singleton;
 import io.kodokojo.commons.config.ApplicationConfig;
 import io.kodokojo.commons.config.VersionConfig;
 import io.kodokojo.api.endpoint.HttpEndpoint;
-import io.kodokojo.api.endpoint.SparkEndpoint;
+import io.kodokojo.commons.spark.SparkEndpoint;
 import io.kodokojo.api.endpoint.UserAuthenticator;
 import io.kodokojo.api.service.authentification.SimpleCredential;
 import io.kodokojo.commons.event.EventBuilderFactory;

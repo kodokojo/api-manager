@@ -17,8 +17,10 @@
  */
 package io.kodokojo.api;
 
+import com.google.inject.AbstractModule;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
+import com.google.inject.multibindings.Multibinder;
 import io.kodokojo.api.config.module.DatabaseModule;
 import io.kodokojo.api.config.module.HttpModule;
 import io.kodokojo.api.config.module.PropertyModule;
@@ -27,10 +29,13 @@ import io.kodokojo.api.config.module.endpoint.BrickEndpointModule;
 import io.kodokojo.api.config.module.endpoint.ProjectEndpointModule;
 import io.kodokojo.api.config.module.endpoint.UserEndpointModule;
 import io.kodokojo.api.endpoint.HttpEndpoint;
+import io.kodokojo.api.endpoint.ProjectSparkEndpoint;
 import io.kodokojo.commons.config.MicroServiceConfig;
 import io.kodokojo.commons.config.module.*;
 import io.kodokojo.commons.event.EventBus;
+import io.kodokojo.commons.service.healthcheck.HttpHealthCheckEndpoint;
 import io.kodokojo.commons.service.lifecycle.ApplicationLifeCycleManager;
+import io.kodokojo.commons.spark.SparkEndpoint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,9 +53,28 @@ public class Launcher {
         Injector propertyInjector = Guice.createInjector(new CommonsPropertyModule(args), new PropertyModule());
         MicroServiceConfig microServiceConfig = propertyInjector.getInstance(MicroServiceConfig.class);
         LOGGER.info("Starting Kodo Kojo {}.", microServiceConfig.name());
-        Injector servicesInjector = propertyInjector.createChildInjector(new UtilityServiceModule(), new EventBusModule(), new ServiceModule(), new RedisReadOnlyModule(), new SecurityModule());
+        Injector servicesInjector = propertyInjector.createChildInjector(
+                new UtilityServiceModule(),
+                new EventBusModule(),
+                new ServiceModule(),
+                new RedisReadOnlyModule(),
+                new SecurityModule(),
+                new CommonsHealthCheckModule()
+        );
 
-        INJECTOR = servicesInjector.createChildInjector(new HttpModule(), new UserEndpointModule(), new ProjectEndpointModule(), new BrickEndpointModule());
+        INJECTOR = servicesInjector.createChildInjector(
+                new HttpModule(),
+                new UserEndpointModule(),
+                new ProjectEndpointModule(),
+                new BrickEndpointModule(),
+                new AbstractModule() {
+                    @Override
+                    protected void configure() {
+                        Multibinder<SparkEndpoint> sparkEndpointBinder = Multibinder.newSetBinder(binder(), SparkEndpoint.class);
+                        sparkEndpointBinder.addBinding().to(HttpHealthCheckEndpoint.class);
+                    }
+                }
+        );
 
         HttpEndpoint httpEndpoint = INJECTOR.getInstance(HttpEndpoint.class);
         EventBus eventBus = INJECTOR.getInstance(EventBus.class);

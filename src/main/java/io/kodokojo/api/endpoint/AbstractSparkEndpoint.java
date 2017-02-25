@@ -18,10 +18,12 @@
 package io.kodokojo.api.endpoint;
 
 import com.google.gson.*;
+import io.kodokojo.commons.spark.JsonTransformer;
 import io.kodokojo.commons.event.EventBuilderFactory;
 import io.kodokojo.commons.event.EventBus;
 import io.kodokojo.commons.model.User;
 import io.kodokojo.api.service.authentification.SimpleCredential;
+import io.kodokojo.commons.spark.SparkEndpoint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import spark.Request;
