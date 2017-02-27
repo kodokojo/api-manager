@@ -24,7 +24,6 @@ import io.kodokojo.api.Launcher;
 import io.kodokojo.commons.dto.BrickEventStateWebSocketMessage;
 import io.kodokojo.commons.dto.WebSocketMessageGsonAdapter;
 import io.kodokojo.commons.event.Event;
-import io.kodokojo.commons.event.EventBuilder;
 import io.kodokojo.commons.event.EventBus;
 import io.kodokojo.commons.event.GsonEventSerializer;
 import io.kodokojo.commons.model.ProjectConfiguration;
@@ -245,7 +244,10 @@ public class WebSocketEntryPoint implements EventBus.EventListener {
         requireNonNull(event, "event must be defined.");
         LOGGER.debug("Receive event:\n{}", event);
         String broadcastFrom = event.getCustom().get(Event.BROADCAST_FROM_CUSTOM_HEADER);
-        if (StringUtils.isBlank(broadcastFrom) && !eventBus.getFrom().equals(broadcastFrom)) {
+        if (StringUtils.isBlank(broadcastFrom) &&
+                !eventBus.getFrom().equals(broadcastFrom) &&
+                event.getRequestReplyType() != Event.RequestReplyType.REQUEST
+                ) {
 
             eventBus.broadcastToSameService(event);
             Set<UserSession> userSessions = new HashSet<>();
@@ -272,7 +274,7 @@ public class WebSocketEntryPoint implements EventBus.EventListener {
 
         Function<User, UserSession> userUserSessionMapper = u -> userConnectedSession.get(u.getIdentifier());
 
-        Set<UserSession> res = ((List<User>) IteratorUtils.toList(projectConfiguration.getAdmins())).stream()
+        Set<UserSession> res = ((List<User>) IteratorUtils.toList(projectConfiguration.getTeamLeaders())).stream()
                 .map(userUserSessionMapper)
                 .collect(Collectors.toSet());
         ((List<User>) IteratorUtils.toList(projectConfiguration.getUsers())).stream()

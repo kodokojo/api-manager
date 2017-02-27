@@ -254,7 +254,7 @@ public class ProjectSparkEndpoint extends AbstractSparkEndpoint {
     }
 
     private static boolean userIsAdmin(User user, ProjectConfiguration projectConfiguration) {
-        List<User> users = IteratorUtils.toList(projectConfiguration.getAdmins());
+        List<User> users = IteratorUtils.toList(projectConfiguration.getTeamLeaders());
         return users.stream().filter(u -> u.getIdentifier().equals(user.getIdentifier())).findFirst().isPresent();
     }
 
