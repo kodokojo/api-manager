@@ -30,6 +30,7 @@ import io.kodokojo.api.endpoint.HttpEndpoint;
 import io.kodokojo.api.endpoint.UserAuthenticator;
 import io.kodokojo.api.service.authentification.SimpleCredential;
 import io.kodokojo.commons.config.ApplicationConfig;
+import io.kodokojo.commons.config.ElasticSearchConfig;
 import io.kodokojo.commons.config.MicroServiceConfig;
 import io.kodokojo.commons.config.VersionConfig;
 import io.kodokojo.commons.config.module.RedisReadOnlyModule;
@@ -155,6 +156,22 @@ public class ApiGiven<SELF extends ApiGiven<?>> extends ApplicationGiven<SELF> {
                     @Override
                     public String secret() {
                         return "";
+                    }
+                };
+            }
+            @Provides
+            @Singleton
+            ElasticSearchConfig provideElasticSearchConfig() {
+                return new ElasticSearchConfig() {
+
+                    @Override
+                    public String url() {
+                        return null;
+                    }
+
+                    @Override
+                    public String indexName() {
+                        return null;
                     }
                 };
             }

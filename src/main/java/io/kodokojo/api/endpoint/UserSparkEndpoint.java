@@ -30,9 +30,9 @@ import io.kodokojo.commons.event.EventBuilderFactory;
 import io.kodokojo.commons.event.EventBus;
 import io.kodokojo.commons.event.payload.UserCreationReply;
 import io.kodokojo.commons.event.payload.UserCreationRequest;
-import io.kodokojo.commons.model.Entity;
+import io.kodokojo.commons.model.Organisation;
 import io.kodokojo.commons.model.User;
-import io.kodokojo.commons.service.repository.EntityFetcher;
+import io.kodokojo.commons.service.repository.OrganisationFetcher;
 import io.kodokojo.commons.service.repository.ProjectFetcher;
 import io.kodokojo.commons.service.repository.UserFetcher;
 import org.apache.commons.lang.StringUtils;
@@ -55,20 +55,20 @@ public class UserSparkEndpoint extends AbstractSparkEndpoint {
 
     private final UserFetcher userFetcher;
 
-    private final EntityFetcher entityFetcher;
+    private final OrganisationFetcher organisationFetcher;
 
     private final ProjectFetcher projectFetcher;
 
     private final ReCaptchaService reCaptchaService;
 
     @Inject
-    public UserSparkEndpoint(UserAuthenticator<SimpleCredential> userAuthenticator, EventBus eventBus, EventBuilderFactory eventBuilderFactory, UserFetcher userFetcher, EntityFetcher entityFetcher, ProjectFetcher projectFetcher, ReCaptchaService reCaptchaService) {
+    public UserSparkEndpoint(UserAuthenticator<SimpleCredential> userAuthenticator, EventBus eventBus, EventBuilderFactory eventBuilderFactory, UserFetcher userFetcher, OrganisationFetcher organisationFetcher, ProjectFetcher projectFetcher, ReCaptchaService reCaptchaService) {
         super(userAuthenticator, eventBus, eventBuilderFactory);
         requireNonNull(userFetcher, "userFetcher must be defined.");
-        requireNonNull(entityFetcher, "entityFetcher must be defined.");
+        requireNonNull(organisationFetcher, "entityFetcher must be defined.");
         requireNonNull(projectFetcher, "projectFetcher must be defined.");
         requireNonNull(reCaptchaService, "reCaptchaService must be defined.");
-        this.entityFetcher = entityFetcher;
+        this.organisationFetcher = organisationFetcher;
         this.userFetcher = userFetcher;
         this.projectFetcher = projectFetcher;
         this.reCaptchaService = reCaptchaService;
@@ -265,7 +265,6 @@ public class UserSparkEndpoint extends AbstractSparkEndpoint {
     private UserDto getUserDto(User user) {
         UserDto res = new UserDto(user);
 
-
         List<UserOrganisationRightDto> userOrganisationRightDtos = user.getOrganisationIds().stream()
                 .map(organisationId -> {
                     UserOrganisationRightDto organisationRightDto = computeUserOrganisationRightDto(user, organisationId);
@@ -280,17 +279,17 @@ public class UserSparkEndpoint extends AbstractSparkEndpoint {
     }
 
     private UserOrganisationRightDto computeUserOrganisationRightDto(User user, String entityId) {
-        Entity entity = entityFetcher.getEntityById(entityId);
+        Organisation organisation = organisationFetcher.getOrganisationById(entityId);
         UserOrganisationRightDto organisationRightDto = new UserOrganisationRightDto();
         organisationRightDto.setIdentifier(entityId);
-        organisationRightDto.setName(entity.getName());
-        if (entity.userIsAdmin(user.getIdentifier())) {
+        organisationRightDto.setName(organisation.getName());
+        if (organisation.userIsAdmin(user.getIdentifier())) {
             organisationRightDto.setRight(UserOrganisationRightDto.Right.ADMIN);
         } else {
             organisationRightDto.setRight(UserOrganisationRightDto.Right.USER);
         }
         List<UserSoftwareFactoryRightDto> softwareFactories = new ArrayList<>();
-        entity.getProjectConfigurations().forEachRemaining(projectConfiguration -> {
+        organisation.getProjectConfigurations().forEachRemaining(projectConfiguration -> {
             if (projectConfiguration.containAsUser(user)) {
                 UserSoftwareFactoryRightDto softwareFactoryDto = new UserSoftwareFactoryRightDto();
                 softwareFactoryDto.setName(projectConfiguration.getName());

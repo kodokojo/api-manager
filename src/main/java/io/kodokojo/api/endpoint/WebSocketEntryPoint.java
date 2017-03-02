@@ -30,7 +30,7 @@ import io.kodokojo.commons.model.ProjectConfiguration;
 import io.kodokojo.commons.model.User;
 import io.kodokojo.commons.service.BrickUrlFactory;
 import io.kodokojo.commons.service.actor.message.BrickStateEvent;
-import io.kodokojo.commons.service.repository.EntityFetcher;
+import io.kodokojo.commons.service.repository.OrganisationFetcher;
 import io.kodokojo.commons.service.repository.ProjectFetcher;
 import io.kodokojo.commons.service.repository.UserFetcher;
 import javaslang.control.Try;
@@ -69,7 +69,7 @@ public class WebSocketEntryPoint implements EventBus.EventListener {
 
     private final ProjectFetcher projectFetcher;
 
-    private final EntityFetcher entityFetcher;
+    private final OrganisationFetcher organisationFetcher;
 
     private final EventBus eventBus;
 
@@ -93,7 +93,7 @@ public class WebSocketEntryPoint implements EventBus.EventListener {
         userConnectedSession = new ConcurrentHashMap<>();
         userRepository = Launcher.INJECTOR.getInstance(UserFetcher.class);
         projectFetcher = Launcher.INJECTOR.getInstance(ProjectFetcher.class);
-        entityFetcher = Launcher.INJECTOR.getInstance(EntityFetcher.class);
+        organisationFetcher = Launcher.INJECTOR.getInstance(OrganisationFetcher.class);
         brickUrlFactory = Launcher.INJECTOR.getInstance(BrickUrlFactory.class);
         eventBus = Launcher.INJECTOR.getInstance(EventBus.class);
         LOGGER.info("WebSocketEntryPoint available");
@@ -254,9 +254,9 @@ public class WebSocketEntryPoint implements EventBus.EventListener {
             if (event.getCustom().containsKey(Event.PROJECTCONFIGURATION_ID_CUSTOM_HEADER)) {
                 Set<UserSession> usersToNotifyed = usersToNotifyed(projectFetcher.getProjectConfigurationById(event.getCustom().get(Event.PROJECTCONFIGURATION_ID_CUSTOM_HEADER)));
                 userSessions.addAll(usersToNotifyed);
-            } else if (event.getCustom().containsKey(Event.ENTITY_ID_CUSTOM_HEADER)) {
-                String entityId = event.getCustom().get(Event.ENTITY_ID_CUSTOM_HEADER);
-                List<ProjectConfiguration> projectConfigurations = IteratorUtils.toList(entityFetcher.getEntityById(entityId).getProjectConfigurations());
+            } else if (event.getCustom().containsKey(Event.ORGANISATION_ID_CUSTOM_HEADER)) {
+                String entityId = event.getCustom().get(Event.ORGANISATION_ID_CUSTOM_HEADER);
+                List<ProjectConfiguration> projectConfigurations = IteratorUtils.toList(organisationFetcher.getOrganisationById(entityId).getProjectConfigurations());
                 Set<UserSession> collect = projectConfigurations.stream().flatMap(p -> usersToNotifyed(p).stream()).collect(Collectors.toSet());
                 userSessions.addAll(collect);
             }
