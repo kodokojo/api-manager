@@ -186,7 +186,9 @@ public class UserSparkEndpoint extends AbstractSparkEndpoint {
                 User user = userFetcher.getUserByIdentifier(identifier);
                 response.status(201);
                 response.header("Location", "/user/" + user.getIdentifier());
-                return new UserCreationDto(user, userCreationReply.getPrivateKey());
+                UserCreationDto res = new UserCreationDto(user, userCreationReply.getPrivateKey());
+                res.setOrganisations(computeUserOrganisationRights(user));
+                return res;
             }
         }
 
@@ -265,13 +267,17 @@ public class UserSparkEndpoint extends AbstractSparkEndpoint {
     private UserDto getUserDto(User user) {
         UserDto res = new UserDto(user);
 
-        List<UserOrganisationRightDto> userOrganisationRightDtos = user.getOrganisationIds().stream()
-                .map(organisationId -> computeUserOrganisationRightDto(user, organisationId))
-                .collect(Collectors.toList());
+        List<UserOrganisationRightDto> userOrganisationRightDtos = computeUserOrganisationRights(user);
 
         res.setOrganisations(userOrganisationRightDtos);
 
         return res;
+    }
+
+    private List<UserOrganisationRightDto> computeUserOrganisationRights(User user) {
+        return user.getOrganisationIds().stream()
+                    .map(organisationId -> computeUserOrganisationRightDto(user, organisationId))
+                    .collect(Collectors.toList());
     }
 
     private UserOrganisationRightDto computeUserOrganisationRightDto(User user, String entityId) {

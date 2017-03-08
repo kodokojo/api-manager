@@ -41,7 +41,7 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
         <akka.version>2.4.9</akka.version>
-        <jgiven.version>0.14.1</jgiven.version>
+        <jgiven.version>0.13.1</jgiven.version>
     </properties>
 
     <dependencies>
