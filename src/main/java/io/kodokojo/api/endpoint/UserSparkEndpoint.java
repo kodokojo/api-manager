@@ -266,11 +266,7 @@ public class UserSparkEndpoint extends AbstractSparkEndpoint {
         UserDto res = new UserDto(user);
 
         List<UserOrganisationRightDto> userOrganisationRightDtos = user.getOrganisationIds().stream()
-                .map(organisationId -> {
-                    UserOrganisationRightDto organisationRightDto = computeUserOrganisationRightDto(user, organisationId);
-
-                    return organisationRightDto;
-                })
+                .map(organisationId -> computeUserOrganisationRightDto(user, organisationId))
                 .collect(Collectors.toList());
 
         res.setOrganisations(userOrganisationRightDtos);
@@ -288,10 +284,10 @@ public class UserSparkEndpoint extends AbstractSparkEndpoint {
         } else {
             organisationRightDto.setRight(UserOrganisationRightDto.Right.USER);
         }
-        List<UserSoftwareFactoryRightDto> softwareFactories = new ArrayList<>();
+        List<UserProjectConfigurationRightDto> softwareFactories = new ArrayList<>();
         organisation.getProjectConfigurations().forEachRemaining(projectConfiguration -> {
             if (projectConfiguration.containAsUser(user)) {
-                UserSoftwareFactoryRightDto softwareFactoryDto = new UserSoftwareFactoryRightDto();
+                UserProjectConfigurationRightDto softwareFactoryDto = new UserProjectConfigurationRightDto();
                 softwareFactoryDto.setName(projectConfiguration.getName());
                 softwareFactoryDto.setIdentifier(projectConfiguration.getIdentifier());
                 softwareFactoryDto.setProjectId(projectFetcher.getProjectIdByProjectConfigurationId(projectConfiguration.getEntityIdentifier()));
@@ -301,7 +297,7 @@ public class UserSparkEndpoint extends AbstractSparkEndpoint {
                 softwareFactories.add(softwareFactoryDto);
             }
         });
-        organisationRightDto.setSoftwareFactories(softwareFactories);
+        organisationRightDto.setProjectConfigurations(softwareFactories);
         return organisationRightDto;
     }
 }
