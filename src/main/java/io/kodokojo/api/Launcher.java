@@ -28,6 +28,7 @@ import io.kodokojo.api.config.module.endpoint.BrickEndpointModule;
 import io.kodokojo.api.config.module.endpoint.ProjectEndpointModule;
 import io.kodokojo.api.config.module.endpoint.UserEndpointModule;
 import io.kodokojo.api.endpoint.HttpEndpoint;
+import io.kodokojo.api.endpoint.JettySupport;
 import io.kodokojo.commons.config.MicroServiceConfig;
 import io.kodokojo.commons.config.module.*;
 import io.kodokojo.commons.event.EventBus;
@@ -77,7 +78,7 @@ public class Launcher {
                 }
         );
 
-        HttpEndpoint httpEndpoint = injector.getInstance(HttpEndpoint.class);
+
         EventBus eventBus = injector.getInstance(EventBus.class);
         ApplicationLifeCycleManager applicationLifeCycleManager = injector.getInstance(ApplicationLifeCycleManager.class);
 
@@ -90,9 +91,10 @@ public class Launcher {
                 LOGGER.info("All services stopped.");
             }
         });
-        //applicationLifeCycleManager.addService(httpEndpoint);
+        JettySupport jettySupport = injector.getInstance(JettySupport.class);
+
         eventBus.connect();
-        //httpEndpoint.start();
+        jettySupport.start();
 
         LOGGER.info("Kodo Kojo {} started.", microServiceConfig.name());
     }

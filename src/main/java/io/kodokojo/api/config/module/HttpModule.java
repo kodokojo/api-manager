@@ -52,8 +52,10 @@ public class HttpModule extends AbstractModule {
 
     @Provides
     @Singleton
-    SseServlet provideSServlet(UserFetcher userFetcher, ProjectFetcher projectFetcher) {
-        return new SseServlet(projectFetcher, userFetcher);
+    SseServlet provideSServlet(UserFetcher userFetcher, ProjectFetcher projectFetcher, EventBus eventBus) {
+        SseServlet sseServlet = new SseServlet(projectFetcher, userFetcher);
+        eventBus.addEventListener(sseServlet);
+        return sseServlet;
     }
 
 
