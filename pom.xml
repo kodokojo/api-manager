@@ -211,6 +211,7 @@
             <groupId>com.github.docker-java</groupId>
             <artifactId>docker-java</artifactId>
             <version>3.0.3</version>
+            <scope>test</scope>
             <exclusions>
                 <exclusion>
                     <groupId>com.googlecode.javaewah</groupId>
