@@ -97,7 +97,7 @@ public class HttpEndpoint extends AbstractSparkEndpoint implements SparkApplicat
         if (requestMatch("POST", BASE_API + "/user", request) ||
                 requestMatch("GET", HttpHealthCheckEndpoint.HEALTHCHECK_PATH, request) ||
                 requestMatch("GET", BASE_API, request) ||
-                requestMatch("GET", BASE_API + "/event(/)?", request) ||
+                //requestMatch("GET", BASE_API + "/event(/)?", request) ||
                 requestMatch("GET", BASE_API + "/doc(/)?.*", request) ||
                 requestMatch("POST", BASE_API + "/user/[^/]*", request)
                 ) {

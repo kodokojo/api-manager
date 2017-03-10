@@ -35,6 +35,7 @@ public class SseServlet extends EventSourceServlet implements EventBus.EventList
     static {
         EVENT_TYPE_WHITE_LIST = new HashSet<>();
         EVENT_TYPE_WHITE_LIST.add(Event.BRICK_STATE_UPDATE);
+        EVENT_TYPE_WHITE_LIST.add(Event.PROJECTCONFIG_STARTED);
     }
 
     private final Map<String, UserSession> caches;
@@ -57,6 +58,7 @@ public class SseServlet extends EventSourceServlet implements EventBus.EventList
     @Override
     protected EventSource newEventSource(HttpServletRequest request) {
         requireNonNull(request, "request must be defined.");
+        LOGGER.debug("Client ip '{}' try to create an SSE connection.", request.getRemoteAddr());
         String authenticationHeaderValue = request.getHeader(BasicAuthenticator.AUTHORIZATION_HEADER_NAME);
         String[] userAndPassword = BasicAuthenticator.explodeUserAndPassword(authenticationHeaderValue);
         if (userAndPassword != null && userAndPassword.length == 2) {
@@ -71,12 +73,14 @@ public class SseServlet extends EventSourceServlet implements EventBus.EventList
                 LOGGER.debug("A user fail to be authenticated as user {}.", username);
             }
         }
+        LOGGER.debug("Client ip '{}' don't provide any authentication.", request.getRemoteAddr());
         return null;
     }
 
     @Override
     public Try<Boolean> receive(Event event) {
         requireNonNull(event, "event must be defined.");
+        String data = Event.convertToJson(event);
         if (EVENT_TYPE_WHITE_LIST.contains(event.getEventType())) {
             Map<String, String> headers = event.getCustom();
             String projectConfigurationIdentifier = headers.get(Event.PROJECTCONFIGURATION_ID_CUSTOM_HEADER);
@@ -86,7 +90,10 @@ public class SseServlet extends EventSourceServlet implements EventBus.EventList
                     Set<UserSession> usersToNotify = computeListOfUserFromProjectConfiguration(projectConfiguration);
                     usersToNotify.forEach(u -> {
                         try {
-                            u.sseEventOutput.send(Event.convertToJson(event));
+                            u.sseEventOutput.send(data);
+                            if (LOGGER.isTraceEnabled()) {
+                                LOGGER.trace("Following event sent to user '{}':\n{}", u.user.getUsername(), Event.convertToPrettyJson(event));
+                            }
                         } catch (IOException e) {
                             LOGGER.error("Unable to send following event to user '{}': \n{}", u.user.getUsername(), Event.convertToPrettyJson(event), e);
                         }
@@ -95,6 +102,15 @@ public class SseServlet extends EventSourceServlet implements EventBus.EventList
                 }
             }
         }
+        /*
+        caches.values().stream().forEach(u -> {
+            try {
+                u.sseEventOutput.send(data);
+            } catch (IOException e) {
+                LOGGER.error("Unable to send following event to user '{}': \n{}", u.user.getUsername(), Event.convertToPrettyJson(event), e);
+            }
+        });
+        */
         return Try.success(false);
     }
 
@@ -127,11 +143,14 @@ public class SseServlet extends EventSourceServlet implements EventBus.EventList
 
         private final SSEEventOutput sseEventOutput;
 
+        private boolean open;
+
         public UserSession(User user, SSEEventOutput sseEventOutput) {
             requireNonNull(user, "user must be defined.");
             requireNonNull(sseEventOutput, "sseEventOutput must be defined.");
             this.user = user;
             this.sseEventOutput = sseEventOutput;
+            this.open = true;
         }
 
         public void send(String data) throws IOException {
