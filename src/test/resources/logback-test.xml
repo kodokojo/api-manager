@@ -34,6 +34,10 @@
     <logger name="io.kodokojo" level="TRACE"/>
     <logger name="akka" level="TRACE"/>
     <logger name="retrofit" level="DEBUG"/>
+    <logger name="org.eclipse.jetty.server" level="INFO"/>
+    <!--logger name="org.eclipse.jetty.servlet" level="DEBUG"/>
+    <logger name="org.eclipse.jetty.servlets" level="DEBUG"/>
+    <logger name="spark.servlet" level="DEBUG"/-->
     <!--logger name="spark" level="INFOS"/-->
     <logger name="org.eclipse.jetty.http" level="INFO"/>
     <logger name="com.github.dockerjava.core.command.LogContainerResultCallback" level="DEBUG"/>

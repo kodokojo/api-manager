@@ -1,17 +1,17 @@
 /**
  * Kodo Kojo - API frontend which dispatch REST event to Http services or publish event on EvetnBus.
  * Copyright © 2017 Kodo Kojo (infos@kodokojo.io)
- *
+ * <p>
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- *
+ * <p>
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
+ * <p>
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
@@ -38,16 +38,6 @@ public class AccessRestIntTest extends ScenarioTest<ApiGiven<?>, AccessRestWhen<
     @Rule
     public DockerPresentMethodRule dockerPresentMethodRule = new DockerPresentMethodRule();
 
-
-    @Test
-    @Ignore
-    @DockerIsRequire
-    public void user_connect_to_websocket_event() {
-        given().api_is_ready(dockerPresentMethodRule.getDockerTestSupport())
-                .and().i_am_user_$("jpthiery", true);
-        when().try_to_access_to_events_websocket();
-        then().it_receive_a_welcome_message();
-    }
 
     @Test
     @Ignore
@@ -82,7 +72,7 @@ public class AccessRestIntTest extends ScenarioTest<ApiGiven<?>, AccessRestWhen<
         when().try_to_access_to_get_url_$("/my/awersome/url/of/the/death");
         then().it_should_return_status_$(401);
     }
-
+/*
     @Test
     @DockerIsRequire
     public void anonymous_user_fail_connect_to_websocket_event() {
@@ -90,5 +80,5 @@ public class AccessRestIntTest extends ScenarioTest<ApiGiven<?>, AccessRestWhen<
         when().try_to_access_to_events_websocket_as_anonymous();
         then().it_NOT_receive_a_welcome_message();
     }
-
+*/
 }

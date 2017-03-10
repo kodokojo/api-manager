@@ -28,11 +28,14 @@ import spark.Response;
 
 import java.util.Base64;
 
+import static org.apache.commons.lang.StringUtils.isBlank;
 import static org.apache.commons.lang.StringUtils.isNotBlank;
 
 public class BasicAuthenticator implements Filter {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(BasicAuthenticator.class);
+
+    public static final String AUTHORIZATION_HEADER_NAME = "Authorization";
 
     private String username;
 
@@ -40,15 +43,14 @@ public class BasicAuthenticator implements Filter {
 
     @Override
     public void handle(Request request, Response response) throws Exception {
-        String authorization = request.headers("Authorization");
-        if (StringUtils.isNotBlank(authorization) && authorization.startsWith("Basic ")) {
-            String encoded = authorization.substring("Basic ".length());
-            String decoded = new String(Base64.getDecoder().decode(encoded));
-            String[] split = decoded.split(":");
-            if (split.length == 2) {
+        String authorization = request.headers(AUTHORIZATION_HEADER_NAME);
+            if (isNotBlank(authorization)) {
+            String[] split = explodeUserAndPassword(authorization);
+            if (split != null && split.length == 2) {
                 username = split[0];
                 password = split[1];
             }
+
         }  else if (LOGGER.isDebugEnabled()) {
             LOGGER.debug("Basic Authorization header not found.");
             if (LOGGER.isTraceEnabled()) {
@@ -69,5 +71,15 @@ public class BasicAuthenticator implements Filter {
 
     public String getPassword() {
         return password;
+    }
+
+    public static String[] explodeUserAndPassword(String headerValue) {
+        if (StringUtils.isNotBlank(headerValue) && headerValue.startsWith("Basic ")) {
+            String encoded = headerValue.substring("Basic ".length());
+            String decoded = new String(Base64.getDecoder().decode(encoded));
+            String[] split = decoded.split(":");
+            return split;
+        }
+        return null;
     }
 }

@@ -122,6 +122,7 @@ public class UserSparkEndpoint extends AbstractSparkEndpoint {
 
     private Object requestNewIdentifier() throws InterruptedException {
         LOGGER.debug("Require a new user Identifier.");
+        LOGGER.info("Requiere new id via eventBus {} [{}]", eventBus, this);
         EventBuilder eventBuilder = eventBuilderFactory.create()
                 .setEventType(Event.USER_IDENTIFIER_CREATION_REQUEST)
                 .setJsonPayload("");

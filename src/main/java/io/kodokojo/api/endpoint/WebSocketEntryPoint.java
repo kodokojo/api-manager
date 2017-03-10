@@ -54,7 +54,7 @@ import static java.util.Objects.requireNonNull;
 
 //  WebSocket close event code https://developer.mozilla.org/fr/docs/Web/API/CloseEvent
 @WebSocket
-//public class WebSocketEntryPoint implements BrickStateEventListener {
+@Deprecated
 public class WebSocketEntryPoint implements EventBus.EventListener {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(WebSocketEntryPoint.class);
@@ -91,11 +91,11 @@ public class WebSocketEntryPoint implements EventBus.EventListener {
         super();
         sessions = new ConcurrentHashMap<>();
         userConnectedSession = new ConcurrentHashMap<>();
-        userRepository = Launcher.INJECTOR.getInstance(UserFetcher.class);
-        projectFetcher = Launcher.INJECTOR.getInstance(ProjectFetcher.class);
-        organisationFetcher = Launcher.INJECTOR.getInstance(OrganisationFetcher.class);
-        brickUrlFactory = Launcher.INJECTOR.getInstance(BrickUrlFactory.class);
-        eventBus = Launcher.INJECTOR.getInstance(EventBus.class);
+        userRepository = null;
+        projectFetcher = null;
+        organisationFetcher = null;
+        brickUrlFactory = null;
+        eventBus = null;
         LOGGER.info("WebSocketEntryPoint available");
         eventBus.addEventListener(this);
     }

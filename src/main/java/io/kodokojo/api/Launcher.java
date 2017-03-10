@@ -41,11 +41,14 @@ public class Launcher {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Launcher.class);
 
-    //  WebSocket is built by Spark but we are not able to get the instance :/ .
-    //  See : https://github.com/perwendel/spark/pull/383
-    public static Injector INJECTOR;
+    public Injector injector;
 
     public static void main(String[] args) {
+        Launcher launcher = new Launcher();
+        launcher.start(args);
+    }
+
+    public void start(String[] args) {
 
 
         Injector propertyInjector = Guice.createInjector(new CommonsPropertyModule(args), new PropertyModule());
@@ -60,7 +63,7 @@ public class Launcher {
                 new CommonsHealthCheckModule()
         );
 
-        INJECTOR = servicesInjector.createChildInjector(
+        injector = servicesInjector.createChildInjector(
                 new HttpModule(),
                 new UserEndpointModule(),
                 new ProjectEndpointModule(),
@@ -74,9 +77,9 @@ public class Launcher {
                 }
         );
 
-        HttpEndpoint httpEndpoint = INJECTOR.getInstance(HttpEndpoint.class);
-        EventBus eventBus = INJECTOR.getInstance(EventBus.class);
-        ApplicationLifeCycleManager applicationLifeCycleManager = INJECTOR.getInstance(ApplicationLifeCycleManager.class);
+        HttpEndpoint httpEndpoint = injector.getInstance(HttpEndpoint.class);
+        EventBus eventBus = injector.getInstance(EventBus.class);
+        ApplicationLifeCycleManager applicationLifeCycleManager = injector.getInstance(ApplicationLifeCycleManager.class);
 
         Runtime.getRuntime().addShutdownHook(new Thread() {
             @Override
@@ -87,12 +90,11 @@ public class Launcher {
                 LOGGER.info("All services stopped.");
             }
         });
-        applicationLifeCycleManager.addService(httpEndpoint);
+        //applicationLifeCycleManager.addService(httpEndpoint);
         eventBus.connect();
-        httpEndpoint.start();
+        //httpEndpoint.start();
 
         LOGGER.info("Kodo Kojo {} started.", microServiceConfig.name());
-
     }
 
 
