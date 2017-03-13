@@ -1,17 +1,17 @@
 /**
  * Kodo Kojo - API frontend which dispatch REST event to Http services or publish event on EvetnBus.
  * Copyright © 2017 Kodo Kojo (infos@kodokojo.io)
- *
+ * <p>
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- *
+ * <p>
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
+ * <p>
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
@@ -23,29 +23,19 @@ import com.tngtech.jgiven.annotation.ExpectedScenarioState;
 import com.tngtech.jgiven.annotation.ProvidedScenarioState;
 import com.tngtech.jgiven.annotation.Quoted;
 import io.kodokojo.commons.dto.BrickConfigDto;
-import io.kodokojo.commons.dto.BrickEventStateWebSocketMessage;
-import io.kodokojo.commons.dto.WebSocketMessageGsonAdapter;
 import io.kodokojo.test.bdd.stage.HttpUserSupport;
 import io.kodokojo.test.bdd.stage.UserInfo;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 import org.apache.commons.io.IOUtils;
-import org.glassfish.tyrus.client.ClientManager;
-import org.glassfish.tyrus.client.ClientProperties;
-import org.glassfish.tyrus.client.auth.Credentials;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.websocket.*;
 import java.io.IOException;
-import java.net.URI;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.fail;
 
@@ -113,17 +103,7 @@ public class AccessRestWhen<SELF extends AccessRestWhen<?>> extends Stage<SELF> 
         return self();
     }
 
-    public SELF try_to_access_to_events_websocket() {
-        UserInfo userInfo = currentUsers.get(currentUserLogin);
-        connectToWebSocket(userInfo, true);
-        return self();
-    }
-
-    public SELF try_to_access_to_events_websocket_as_anonymous() {
-        connectToWebSocket(null, false);
-        return self();
-    }
-
+/*
     private void connectToWebSocket(UserInfo requesterUserInfo, boolean expectSuccess) {
 
         try {
@@ -191,7 +171,7 @@ public class AccessRestWhen<SELF extends AccessRestWhen<?>> extends Stage<SELF> 
             }
         }
     }
-
+*/
 
     public SELF try_to_access_to_list_of_brick_available() {
         UserInfo currentUser = currentUsers.get(currentUserLogin);

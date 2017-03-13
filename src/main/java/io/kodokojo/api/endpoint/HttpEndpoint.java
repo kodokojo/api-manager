@@ -31,24 +31,23 @@ import org.slf4j.LoggerFactory;
 import spark.Request;
 import spark.Response;
 import spark.Spark;
+import spark.servlet.SparkApplication;
 
 import javax.inject.Inject;
 import java.util.Set;
 
 import static spark.Spark.*;
 
-public class HttpEndpoint extends AbstractSparkEndpoint implements ApplicationLifeCycleListener {
+public class HttpEndpoint extends AbstractSparkEndpoint implements SparkApplication {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(HttpEndpoint.class);
-
-    private final int port;
 
     private final Set<SparkEndpoint> sparkEndpoints;
 
     private final VersionConfig versionConfig;
 
     @Inject
-    public HttpEndpoint(int port, UserAuthenticator<SimpleCredential> userAuthenticator, EventBus eventBus, EventBuilderFactory eventBuilderFactory, Set<SparkEndpoint> sparkEndpoints, VersionConfig versionConfig) {
+    public HttpEndpoint(UserAuthenticator<SimpleCredential> userAuthenticator, EventBus eventBus, EventBuilderFactory eventBuilderFactory, Set<SparkEndpoint> sparkEndpoints, VersionConfig versionConfig) {
         super(userAuthenticator, eventBus,eventBuilderFactory);
         if (sparkEndpoints == null) {
             throw new IllegalArgumentException("sparkEndpoints must be defined.");
@@ -56,24 +55,12 @@ public class HttpEndpoint extends AbstractSparkEndpoint implements ApplicationLi
         if (versionConfig == null) {
             throw new IllegalArgumentException("versionConfig must be defined.");
         }
-        this.port = port;
         this.sparkEndpoints = sparkEndpoints;
         this.versionConfig = versionConfig;
     }
 
     @Override
-    public void start() {
-        configure();
-    }
-
-    @Override
     public void configure() {
-
-        Spark.port(port);
-
-        webSocket(BASE_API + "/event", WebSocketEntryPoint.class);
-
-        staticFileLocation("webapp");
 
         before((request, response) -> {
             logging(request, response);
@@ -91,8 +78,6 @@ public class HttpEndpoint extends AbstractSparkEndpoint implements ApplicationLi
                     "}";
         });
 
-        Spark.awaitInitialization();
-        LOGGER.info("Spark server started on port {}.", port);
     }
 
     protected void logging(Request request, Response response) {
@@ -112,7 +97,7 @@ public class HttpEndpoint extends AbstractSparkEndpoint implements ApplicationLi
         if (requestMatch("POST", BASE_API + "/user", request) ||
                 requestMatch("GET", HttpHealthCheckEndpoint.HEALTHCHECK_PATH, request) ||
                 requestMatch("GET", BASE_API, request) ||
-                requestMatch("GET", BASE_API + "/event(/)?", request) ||
+                //requestMatch("GET", BASE_API + "/event(/)?", request) ||
                 requestMatch("GET", BASE_API + "/doc(/)?.*", request) ||
                 requestMatch("POST", BASE_API + "/user/[^/]*", request)
                 ) {
@@ -136,16 +121,6 @@ public class HttpEndpoint extends AbstractSparkEndpoint implements ApplicationLi
         }
     }
 
-    public int getPort() {
-        return port;
-    }
-
-    @Override
-    public void stop() {
-        LOGGER.info("Stopping HttpEndpoint.");
-        Spark.stop();
-    }
-
     private static void authorizationRequiered(Request request, Response response) {
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug("Current request required an authentication which not currently provide.");
@@ -161,5 +136,11 @@ public class HttpEndpoint extends AbstractSparkEndpoint implements ApplicationLi
         boolean pathMatch = request.pathInfo().matches(regexpPath);
         return matchMethod && pathMatch;
     }
+
+    @Override
+    public void init() {
+        configure();
+    }
+
 
 }
