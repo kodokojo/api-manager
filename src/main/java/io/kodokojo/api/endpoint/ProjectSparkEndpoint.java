@@ -17,10 +17,7 @@
  */
 package io.kodokojo.api.endpoint;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonParser;
+import com.google.gson.*;
 import io.kodokojo.api.service.authentification.SimpleCredential;
 import io.kodokojo.commons.dto.*;
 import io.kodokojo.commons.event.Event;
@@ -88,10 +85,39 @@ public class ProjectSparkEndpoint extends AbstractSparkEndpoint {
 
         //  --  Organisation
 
+        post(BASE_API + "/organisation", JSON_CONTENT_TYPE, ((request, response) -> createOrganisation(request)), jsonResponseTransformer);
+
         get(BASE_API + "/organisation", JSON_CONTENT_TYPE , (request, response) -> getListOfLightOrganisationFromCurrentUser(request), jsonResponseTransformer);
 
         get(BASE_API + "/organisation/:id", JSON_CONTENT_TYPE, ((request, response) -> getOrganisationForCurrentUser(request)), jsonResponseTransformer);
 
+    }
+
+    private Object createOrganisation(Request request)  {
+        String body = request.body();
+        JsonParser parser = new JsonParser();
+        JsonObject json = (JsonObject) parser.parse(body);
+        Optional<String> nameOpt = readStringFromJson(json, "nameOpt");
+        if (nameOpt.isPresent()) {
+            User requester = getRequester(request);
+            String name = nameOpt.get();
+            EventBuilder eventBuilder = eventBuilderFactory.create();
+            eventBuilder.setEventType(Event.ORGANISATION_CREATE_REQUEST);
+            eventBuilder.addCustomHeader(Event.REQUESTER_ID_CUSTOM_HEADER, requester.getIdentifier());
+            eventBuilder.setPayload(name);
+            Event reply = null;
+            try {
+                reply = eventBus.request(eventBuilder.build(), 30, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                LOGGER.error("Unable to create organisation {}, timeout exceed.", name, e);
+            }
+            if (reply == null) {
+                halt(500,"request excess timeout.");
+                return "";
+            }
+            return reply.getPayload();
+        }
+        return "";
     }
 
     private Object getOrganisationForCurrentUser(Request request) {
@@ -130,14 +156,11 @@ public class ProjectSparkEndpoint extends AbstractSparkEndpoint {
             return "";
         }
 
-
         EventBuilder eventBuilder = eventBuilderFactory.create();
         eventBuilder.setEventType(Event.PROJECTCONFIG_CREATION_REQUEST);
         eventBuilder.addCustomHeader(Event.REQUESTER_ID_CUSTOM_HEADER, requester.getIdentifier());
         eventBuilder.setPayload(dto);
-        if (requester != null) {
-            eventBuilder.addCustomHeader(Event.REQUESTER_ID_CUSTOM_HEADER, requester.getIdentifier());
-        }
+
         Event reply = eventBus.request(eventBuilder.build(), 30, TimeUnit.SECONDS);
         if (reply == null) {
             halt(500,"request excess timeout.");
