@@ -98,17 +98,18 @@ public class JettySupport implements ApplicationLifeCycleListener {
             }
         });
 
-        context.addFilter(sparkFilter, "/*", EnumSet.of(DispatcherType.FORWARD, DispatcherType.REQUEST, DispatcherType.ASYNC, DispatcherType.INCLUDE, DispatcherType.ERROR));
+        //context.addFilter(sparkFilter, "/api/v1", EnumSet.allOf(DispatcherType.class));
+        context.addFilter(sparkFilter, "/*", EnumSet.allOf(DispatcherType.class));
 
-
+/*
         String webAppDirectory = getClass().getClassLoader().getResource("webapp").toExternalForm();
         ResourceHandler resourceHandler = new ResourceHandler();
         resourceHandler.setResourceBase(webAppDirectory);
 
         HandlerList handlers = new HandlerList();
-        handlers.setHandlers(new Handler[]{resourceHandler, context});
-
-        server.setHandler(handlers);
+        handlers.setHandlers(new Handler[]{resourceHandler,context});
+*/
+        server.setHandler(context);
         return server;
     }
 

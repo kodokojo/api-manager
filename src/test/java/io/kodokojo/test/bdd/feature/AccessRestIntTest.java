@@ -49,6 +49,7 @@ public class AccessRestIntTest extends ScenarioTest<ApiGiven<?>, AccessRestWhen<
         then().it_receive_a_valide_list_of_available_brick();
     }
 
+    /*
     @Test
     @DockerIsRequire
     public void anonymous_user_access_to_api_documentation() {
@@ -56,6 +57,7 @@ public class AccessRestIntTest extends ScenarioTest<ApiGiven<?>, AccessRestWhen<
         when().try_to_access_to_get_url_$("/api/v1/doc");
         then().it_should_return_status_$(200);
     }
+    */
 
     @Test
     @DockerIsRequire

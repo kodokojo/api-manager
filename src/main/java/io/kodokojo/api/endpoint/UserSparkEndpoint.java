@@ -150,6 +150,14 @@ public class UserSparkEndpoint extends AbstractSparkEndpoint {
         JsonObject json = (JsonObject) parser.parse(request.body());
         String email = readStringFromJson(json, "email").get();
         String username = email.substring(0, email.lastIndexOf("@"));
+        Boolean isRoot = readBooleanFromJson(json, "isRoot").orElse(Boolean.FALSE);
+
+        if (isRoot) {
+            if (requester == null || !requester.isRoot()) {
+                halt(403,"You must be a valid root user to be able to create a root user.");
+                return "";
+            }
+        }
 
         String organisationId = "";
         if (requester != null) {
@@ -167,7 +175,7 @@ public class UserSparkEndpoint extends AbstractSparkEndpoint {
         if (requester != null) {
             eventBuilder.addCustomHeader(Event.REQUESTER_ID_CUSTOM_HEADER, requester.getIdentifier());
         }
-        eventBuilder.setPayload(new UserCreationRequest(identifier, email, username, organisationId));
+        eventBuilder.setPayload(new UserCreationRequest(identifier, email, username, organisationId, isRoot));
 
         Event reply = eventBus.request(eventBuilder.build(), 30, TimeUnit.SECONDS);
 
