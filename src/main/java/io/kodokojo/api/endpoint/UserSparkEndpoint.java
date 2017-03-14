@@ -23,14 +23,16 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import io.kodokojo.api.service.ReCaptchaService;
 import io.kodokojo.api.service.authentification.SimpleCredential;
-import io.kodokojo.commons.dto.*;
+import io.kodokojo.commons.dto.UserCreationDto;
+import io.kodokojo.commons.dto.UserDto;
+import io.kodokojo.commons.dto.UserOrganisationRightDto;
+import io.kodokojo.commons.dto.UserUpdateDto;
 import io.kodokojo.commons.event.Event;
 import io.kodokojo.commons.event.EventBuilder;
 import io.kodokojo.commons.event.EventBuilderFactory;
 import io.kodokojo.commons.event.EventBus;
 import io.kodokojo.commons.event.payload.UserCreationReply;
 import io.kodokojo.commons.event.payload.UserCreationRequest;
-import io.kodokojo.commons.model.Organisation;
 import io.kodokojo.commons.model.User;
 import io.kodokojo.commons.service.repository.OrganisationFetcher;
 import io.kodokojo.commons.service.repository.ProjectFetcher;
@@ -42,9 +44,8 @@ import spark.Request;
 import spark.Response;
 
 import javax.inject.Inject;
-import java.util.*;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import static java.util.Objects.requireNonNull;
 import static spark.Spark.*;
@@ -154,15 +155,15 @@ public class UserSparkEndpoint extends AbstractSparkEndpoint {
 
         if (isRoot) {
             if (requester == null || !requester.isRoot()) {
-                halt(403,"You must be a valid root user to be able to create a root user.");
+                halt(403, "You must be a valid root user to be able to create a root user.");
                 return "";
             }
         }
 
         String organisationId = "";
         if (requester != null) {
-            organisationId = readStringFromJson(json,"organisation").get();
-            if (!requester.isRoot() && !requester.getOrganisationIds().contains(organisationId)){
+            organisationId = readStringFromJson(json, "organisation").get();
+            if (!requester.isRoot() && !requester.getOrganisationIds().contains(organisationId)) {
                 halt(404, "Unable to create user for not authorized or unknow organisation " + organisationId);
                 return "";
             }
@@ -196,7 +197,7 @@ public class UserSparkEndpoint extends AbstractSparkEndpoint {
                 response.status(201);
                 response.header("Location", "/user/" + user.getIdentifier());
                 UserCreationDto res = new UserCreationDto(user, userCreationReply.getPrivateKey());
-                res.setOrganisations(computeUserOrganisationRights(user));
+                res.setOrganisations(UserOrganisationRightDto.computeUserOrganisationRights(user, organisationFetcher, projectFetcher));
                 return res;
             }
         }
@@ -276,43 +277,12 @@ public class UserSparkEndpoint extends AbstractSparkEndpoint {
     private UserDto getUserDto(User user) {
         UserDto res = new UserDto(user);
 
-        List<UserOrganisationRightDto> userOrganisationRightDtos = computeUserOrganisationRights(user);
+        List<UserOrganisationRightDto> userOrganisationRightDtos = UserOrganisationRightDto.computeUserOrganisationRights(user, organisationFetcher, projectFetcher);
 
         res.setOrganisations(userOrganisationRightDtos);
 
         return res;
     }
 
-    private List<UserOrganisationRightDto> computeUserOrganisationRights(User user) {
-        return user.getOrganisationIds().stream()
-                    .map(organisationId -> computeUserOrganisationRightDto(user, organisationId))
-                    .collect(Collectors.toList());
-    }
 
-    private UserOrganisationRightDto computeUserOrganisationRightDto(User user, String entityId) {
-        Organisation organisation = organisationFetcher.getOrganisationById(entityId);
-        UserOrganisationRightDto organisationRightDto = new UserOrganisationRightDto();
-        organisationRightDto.setIdentifier(entityId);
-        organisationRightDto.setName(organisation.getName());
-        if (organisation.userIsAdmin(user.getIdentifier())) {
-            organisationRightDto.setRight(UserOrganisationRightDto.Right.ADMIN);
-        } else {
-            organisationRightDto.setRight(UserOrganisationRightDto.Right.USER);
-        }
-        List<UserProjectConfigurationRightDto> softwareFactories = new ArrayList<>();
-        organisation.getProjectConfigurations().forEachRemaining(projectConfiguration -> {
-            if (projectConfiguration.containAsUser(user)) {
-                UserProjectConfigurationRightDto softwareFactoryDto = new UserProjectConfigurationRightDto();
-                softwareFactoryDto.setName(projectConfiguration.getName());
-                softwareFactoryDto.setIdentifier(projectConfiguration.getIdentifier());
-                softwareFactoryDto.setProjectId(projectFetcher.getProjectIdByProjectConfigurationId(projectConfiguration.getEntityIdentifier()));
-                if (projectConfiguration.containAsTeamLeader(user)) {
-                    softwareFactoryDto.setTeamLeader(true);
-                }
-                softwareFactories.add(softwareFactoryDto);
-            }
-        });
-        organisationRightDto.setProjectConfigurations(softwareFactories);
-        return organisationRightDto;
-    }
 }

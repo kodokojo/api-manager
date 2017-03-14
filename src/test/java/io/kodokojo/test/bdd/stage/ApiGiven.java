@@ -138,7 +138,9 @@ public class ApiGiven<SELF extends ApiGiven<?>> extends Stage<SELF> implements D
                         f.setAccessible(true);
                         try {
                             Routes routes  = (Routes) f.get(sparkService);
-                            routes.clear();
+                            if (routes != null) {
+                                routes.clear();
+                            }
                         } catch (IllegalAccessException e) {
                             e.printStackTrace();
                         }
