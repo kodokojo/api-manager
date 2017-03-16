@@ -162,7 +162,7 @@ public class UserSparkEndpoint extends AbstractSparkEndpoint {
 
         String organisationId = "";
         if (requester != null) {
-            organisationId = readStringFromJson(json, "organisation").get();
+            organisationId = readStringFromJson(json, "organisationId").orElse("");
             if (!requester.isRoot() && !requester.getOrganisationIds().contains(organisationId)) {
                 halt(404, "Unable to create user for not authorized or unknow organisation " + organisationId);
                 return "";
