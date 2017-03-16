@@ -110,7 +110,7 @@ public class UserSparkEndpoint extends AbstractSparkEndpoint {
         if (user != null) {
             if (user.getOrganisationIds().equals(requester.getOrganisationIds())) {
                 if (!user.equals(requester)) {
-                    user = new User(user.getIdentifier(), user.getOrganisationIds(), user.getName(), user.getUsername(), user.getEmail(), "", user.getSshPublicKey());
+                    user = new User(user.getIdentifier(), user.getOrganisationIds(), user.getName(), user.getUsername(), user.getEmail(), "", user.getSshPublicKey(), user.isRoot());
                 }
                 return getUserDto(user);
             }
