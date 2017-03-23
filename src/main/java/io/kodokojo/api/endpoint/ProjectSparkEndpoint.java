@@ -98,7 +98,7 @@ public class ProjectSparkEndpoint extends AbstractSparkEndpoint {
         String body = request.body();
         JsonParser parser = new JsonParser();
         JsonObject json = (JsonObject) parser.parse(body);
-        Optional<String> nameOpt = readStringFromJson(json, "nameOpt");
+        Optional<String> nameOpt = readStringFromJson(json, "name");
         if (nameOpt.isPresent()) {
             User requester = getRequester(request);
             String name = nameOpt.get();
