@@ -24,6 +24,7 @@ import io.kodokojo.commons.event.Event;
 import io.kodokojo.commons.event.EventBuilder;
 import io.kodokojo.commons.event.EventBuilderFactory;
 import io.kodokojo.commons.event.EventBus;
+import io.kodokojo.commons.event.payload.OrganisationCreationReply;
 import io.kodokojo.commons.event.payload.ProjectConfigurationChangeUserRequest;
 import io.kodokojo.commons.event.payload.TypeChange;
 import io.kodokojo.commons.model.Project;
@@ -115,7 +116,12 @@ public class ProjectSparkEndpoint extends AbstractSparkEndpoint {
                 halt(500,"request excess timeout.");
                 return "";
             }
-            return reply.getPayload();
+            OrganisationCreationReply organisationCreationReply = reply.getPayload(OrganisationCreationReply.class);
+            if (organisationCreationReply.isAlreadyExist()) {
+                halt(409, "Organisation with name " + name + " already exist.");
+                return "";
+            }
+            return organisationCreationReply.getIdentifier();
         }
         return "";
     }

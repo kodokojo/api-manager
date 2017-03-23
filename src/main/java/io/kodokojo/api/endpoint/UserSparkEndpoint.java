@@ -48,6 +48,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import static java.util.Objects.requireNonNull;
+import static org.apache.commons.lang.StringUtils.isBlank;
 import static spark.Spark.*;
 
 public class UserSparkEndpoint extends AbstractSparkEndpoint {
@@ -114,7 +115,7 @@ public class UserSparkEndpoint extends AbstractSparkEndpoint {
                 }
                 return getUserDto(user);
             }
-            halt(403, "You aren't in same entity.");
+            halt(403, "You aren't in same organisation.");
             return "";
         }
         halt(404);
@@ -256,7 +257,7 @@ public class UserSparkEndpoint extends AbstractSparkEndpoint {
         if (requester == null) {
             if (reCaptchaService.isConfigured()) {
                 String captcha = request.headers("g-recaptcha-response");
-                if (StringUtils.isBlank(captcha)) {
+                if (isBlank(captcha)) {
                     halt(428, "Unable to retrieve a valid user or Captcha.");
                     return false;
                 } else if (reCaptchaService.validToken(captcha, request.ip())) {
