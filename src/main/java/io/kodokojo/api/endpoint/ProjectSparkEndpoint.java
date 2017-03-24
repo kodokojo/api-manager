@@ -86,7 +86,7 @@ public class ProjectSparkEndpoint extends AbstractSparkEndpoint {
 
         //  --  Organisation
 
-        post(BASE_API + "/organisation", JSON_CONTENT_TYPE, ((request, response) -> createOrganisation(request)), jsonResponseTransformer);
+        post(BASE_API + "/organisation", JSON_CONTENT_TYPE, (this::createOrganisation), jsonResponseTransformer);
 
         get(BASE_API + "/organisation", JSON_CONTENT_TYPE , (request, response) -> getListOfLightOrganisationFromCurrentUser(request), jsonResponseTransformer);
 
@@ -94,7 +94,7 @@ public class ProjectSparkEndpoint extends AbstractSparkEndpoint {
 
     }
 
-    private Object createOrganisation(Request request)  {
+    private Object createOrganisation(Request request, Response response)  {
         String body = request.body();
         JsonParser parser = new JsonParser();
         JsonObject json = (JsonObject) parser.parse(body);
@@ -121,6 +121,7 @@ public class ProjectSparkEndpoint extends AbstractSparkEndpoint {
                 halt(409, "Organisation with name " + name + " already exist.");
                 return "";
             }
+            response.status(201);
             return organisationCreationReply.getIdentifier();
         }
         return "";

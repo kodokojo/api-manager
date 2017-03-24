@@ -64,7 +64,14 @@ public class UserSparkEndpoint extends AbstractSparkEndpoint {
     private final ReCaptchaService reCaptchaService;
 
     @Inject
-    public UserSparkEndpoint(UserAuthenticator<SimpleCredential> userAuthenticator, EventBus eventBus, EventBuilderFactory eventBuilderFactory, UserFetcher userFetcher, OrganisationFetcher organisationFetcher, ProjectFetcher projectFetcher, ReCaptchaService reCaptchaService) {
+    public UserSparkEndpoint(UserAuthenticator<SimpleCredential> userAuthenticator,
+                             EventBus eventBus,
+                             EventBuilderFactory eventBuilderFactory,
+                             UserFetcher userFetcher,
+                             OrganisationFetcher organisationFetcher,
+                             ProjectFetcher projectFetcher,
+                             ReCaptchaService reCaptchaService
+    ) {
         super(userAuthenticator, eventBus, eventBuilderFactory);
         requireNonNull(userFetcher, "userFetcher must be defined.");
         requireNonNull(organisationFetcher, "entityFetcher must be defined.");
