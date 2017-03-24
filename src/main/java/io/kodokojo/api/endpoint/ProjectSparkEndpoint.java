@@ -1,17 +1,17 @@
 /**
  * Kodo Kojo - API frontend which dispatch REST event to Http services or publish event on EvetnBus.
  * Copyright © 2017 Kodo Kojo (infos@kodokojo.io)
- *
+ * <p>
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- *
+ * <p>
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
+ * <p>
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
@@ -88,13 +88,13 @@ public class ProjectSparkEndpoint extends AbstractSparkEndpoint {
 
         post(BASE_API + "/organisation", JSON_CONTENT_TYPE, (this::createOrganisation), jsonResponseTransformer);
 
-        get(BASE_API + "/organisation", JSON_CONTENT_TYPE , (request, response) -> getListOfLightOrganisationFromCurrentUser(request), jsonResponseTransformer);
+        get(BASE_API + "/organisation", JSON_CONTENT_TYPE, (request, response) -> getListOfLightOrganisationFromCurrentUser(request), jsonResponseTransformer);
 
         get(BASE_API + "/organisation/:id", JSON_CONTENT_TYPE, ((request, response) -> getOrganisationForCurrentUser(request)), jsonResponseTransformer);
 
     }
 
-    private Object createOrganisation(Request request, Response response)  {
+    private Object createOrganisation(Request request, Response response) {
         String body = request.body();
         JsonParser parser = new JsonParser();
         JsonObject json = (JsonObject) parser.parse(body);
@@ -113,7 +113,7 @@ public class ProjectSparkEndpoint extends AbstractSparkEndpoint {
                 LOGGER.error("Unable to create organisation {}, timeout exceed.", name, e);
             }
             if (reply == null) {
-                halt(500,"request excess timeout.");
+                halt(500, "request excess timeout.");
                 return "";
             }
             OrganisationCreationReply organisationCreationReply = reply.getPayload(OrganisationCreationReply.class);
@@ -122,7 +122,9 @@ public class ProjectSparkEndpoint extends AbstractSparkEndpoint {
                 return "";
             }
             response.status(201);
-            return organisationCreationReply.getIdentifier();
+            return new OrganisationLightDto(organisationCreationReply.getIdentifier(), name);
+        } else {
+            halt(400, "name is required.");
         }
         return "";
     }
@@ -170,7 +172,7 @@ public class ProjectSparkEndpoint extends AbstractSparkEndpoint {
 
         Event reply = eventBus.request(eventBuilder.build(), 30, TimeUnit.SECONDS);
         if (reply == null) {
-            halt(500,"request excess timeout.");
+            halt(500, "request excess timeout.");
             return "";
         }
         String projectConfigIdentifier = reply.getPayload();
