@@ -37,6 +37,10 @@ import io.kodokojo.commons.model.User;
 import io.kodokojo.commons.service.repository.OrganisationFetcher;
 import io.kodokojo.commons.service.repository.ProjectFetcher;
 import io.kodokojo.commons.service.repository.UserFetcher;
+import io.kodokojo.commons.service.repository.UserSearcher;
+import io.kodokojo.commons.service.repository.search.Criteria;
+import io.kodokojo.commons.service.repository.search.UserSearchDto;
+import io.kodokojo.commons.spark.JsonTransformer;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,6 +48,7 @@ import spark.Request;
 import spark.Response;
 
 import javax.inject.Inject;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -63,6 +68,8 @@ public class UserSparkEndpoint extends AbstractSparkEndpoint {
 
     private final ReCaptchaService reCaptchaService;
 
+    private final UserSearcher userSearcher;
+
     @Inject
     public UserSparkEndpoint(UserAuthenticator<SimpleCredential> userAuthenticator,
                              EventBus eventBus,
@@ -70,6 +77,7 @@ public class UserSparkEndpoint extends AbstractSparkEndpoint {
                              UserFetcher userFetcher,
                              OrganisationFetcher organisationFetcher,
                              ProjectFetcher projectFetcher,
+                             UserSearcher userSearcher,
                              ReCaptchaService reCaptchaService
     ) {
         super(userAuthenticator, eventBus, eventBuilderFactory);
@@ -77,10 +85,12 @@ public class UserSparkEndpoint extends AbstractSparkEndpoint {
         requireNonNull(organisationFetcher, "entityFetcher must be defined.");
         requireNonNull(projectFetcher, "projectFetcher must be defined.");
         requireNonNull(reCaptchaService, "reCaptchaService must be defined.");
+        requireNonNull(userSearcher, "userSearcher must be defined.");
         this.organisationFetcher = organisationFetcher;
         this.userFetcher = userFetcher;
         this.projectFetcher = projectFetcher;
         this.reCaptchaService = reCaptchaService;
+        this.userSearcher = userSearcher;
     }
 
     @Override
@@ -105,10 +115,22 @@ public class UserSparkEndpoint extends AbstractSparkEndpoint {
             return getUserDto(requester);
         }, jsonResponseTransformer);
 
+        get(BASE_API + "/user/search", JSON_CONTENT_TYPE, (request, response) -> searchUser(request), jsonResponseTransformer);
+
         get(BASE_API + "/user/:id", JSON_CONTENT_TYPE,
                 (request, response) -> getUserById(request),
                 jsonResponseTransformer
         );
+    }
+
+    private Object searchUser(Request request) {
+        User requester = getRequester(request);
+        String criteria = request.queryParams("q");
+        if (isBlank(criteria)) {
+            halt(400, "'q' criteria parameter must be defined.");
+            return "";
+        }
+        return userSearcher.searchUserByCriterion(requester.getOrganisationIds(), new Criteria("global", criteria)).getOrElse(new ArrayList<>());
     }
 
     private Object getUserById(Request request) {

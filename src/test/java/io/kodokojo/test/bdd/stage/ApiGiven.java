@@ -258,12 +258,12 @@ public class ApiGiven<SELF extends ApiGiven<?>> extends Stage<SELF> implements D
 
                     @Override
                     public String url() {
-                        return null;
+                        return "http://localhost:9200";
                     }
 
                     @Override
                     public String indexName() {
-                        return null;
+                        return "kodokojo";
                     }
                 };
             }

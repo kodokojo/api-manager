@@ -65,6 +65,7 @@ public class HttpEndpoint extends AbstractSparkEndpoint implements SparkApplicat
         before((request, response) -> {
             logging(request, response);
             securityCheck(request, response);
+            response.type(JSON_CONTENT_TYPE);
         });
 
         sparkEndpoints.forEach(SparkEndpoint::configure);
