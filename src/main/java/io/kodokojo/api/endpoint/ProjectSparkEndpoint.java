@@ -24,9 +24,11 @@ import io.kodokojo.commons.event.Event;
 import io.kodokojo.commons.event.EventBuilder;
 import io.kodokojo.commons.event.EventBuilderFactory;
 import io.kodokojo.commons.event.EventBus;
+import io.kodokojo.commons.event.payload.OrganisationChangeUserRequest;
 import io.kodokojo.commons.event.payload.OrganisationCreationReply;
 import io.kodokojo.commons.event.payload.ProjectConfigurationChangeUserRequest;
 import io.kodokojo.commons.event.payload.TypeChange;
+import io.kodokojo.commons.model.Organisation;
 import io.kodokojo.commons.model.Project;
 import io.kodokojo.commons.model.ProjectConfiguration;
 import io.kodokojo.commons.model.User;
@@ -56,6 +58,7 @@ public class ProjectSparkEndpoint extends AbstractSparkEndpoint {
     //private final ActorRef akkaEndpoint;
 
     private final ProjectFetcher projectFetcher;
+
     private final OrganisationFetcher organisationFetcher;
 
     @Inject
@@ -92,15 +95,60 @@ public class ProjectSparkEndpoint extends AbstractSparkEndpoint {
 
         get(BASE_API + "/organisation/:id", JSON_CONTENT_TYPE, ((request, response) -> getOrganisationForCurrentUser(request)), jsonResponseTransformer);
 
+        put(BASE_API + "/organisation/:id/admin", JSON_CONTENT_TYPE, (request, response) -> {
+            OrganisationChangeUserRequest.TypeChange typeChange = OrganisationChangeUserRequest.TypeChange.ADD;
+            return organisationChangeAdmin(request, typeChange);
+        }, jsonResponseTransformer);
+
+        delete(BASE_API + "/organisation/:id/admin", JSON_CONTENT_TYPE, (request, response) -> {
+            OrganisationChangeUserRequest.TypeChange typeChange = OrganisationChangeUserRequest.TypeChange.REMOVE;
+            return organisationChangeAdmin(request, typeChange);
+        }, jsonResponseTransformer);
+
+    }
+
+    private Object organisationChangeAdmin(Request request, OrganisationChangeUserRequest.TypeChange typeChange) {
+        User requester = getRequester(request);
+        String identifier = request.params(":id");
+        Organisation organisation = organisationFetcher.getOrganisationById(identifier);
+        if (organisation == null) {
+            halt(404, "Organisation with id '" + identifier + "' not found.");
+            return "";
+        }
+        if (requester.isRoot() || organisation.userIsAdmin(requester.getIdentifier())) {
+            List<String> userIdsToAdd = new ArrayList<>();
+            JsonParser parser = new JsonParser();
+            JsonArray root = (JsonArray) parser.parse(request.body());
+            for (JsonElement el : root) {
+                String userToAddId = el.getAsJsonPrimitive().getAsString();
+                userIdsToAdd.add(userToAddId);
+            }
+            EventBuilder eventBuilder = eventBuilderFactory.create();
+            eventBuilder.setEventType(Event.ORGANISATION_CHANGE_ADMIN_REQUEST);
+            eventBuilder.addCustomHeader(Event.REQUESTER_ID_CUSTOM_HEADER, requester.getIdentifier());
+            userIdsToAdd.forEach(userId -> {
+                OrganisationChangeUserRequest payload = new OrganisationChangeUserRequest(requester, typeChange, organisation.getIdentifier(), userId);
+                eventBuilder.setPayload(payload);
+                eventBus.send(eventBuilder.build());
+            });
+        } else {
+            halt(403);
+            return "You aren't allowed to " + typeChange + " admin to this organisation.";
+        }
+        return "";
     }
 
     private Object createOrganisation(Request request, Response response) {
+        User requester = getRequester(request);
+        if (!requester.isRoot()) {
+            halt(403, "You aren't allow to create organisation.");
+            return "";
+        }
         String body = request.body();
         JsonParser parser = new JsonParser();
         JsonObject json = (JsonObject) parser.parse(body);
         Optional<String> nameOpt = readStringFromJson(json, "name");
         if (nameOpt.isPresent()) {
-            User requester = getRequester(request);
             String name = nameOpt.get();
             EventBuilder eventBuilder = eventBuilderFactory.create();
             eventBuilder.setEventType(Event.ORGANISATION_CREATE_REQUEST);
@@ -322,7 +370,6 @@ public class ProjectSparkEndpoint extends AbstractSparkEndpoint {
         return "";
     }
 
-
     private static boolean userIsUser(User user, ProjectConfiguration projectConfiguration) {
         List<User> users = IteratorUtils.toList(projectConfiguration.getUsers());
         boolean res = users.stream().anyMatch(u -> u.getIdentifier().equals(user.getIdentifier()));
@@ -333,7 +380,6 @@ public class ProjectSparkEndpoint extends AbstractSparkEndpoint {
         List<User> users = IteratorUtils.toList(projectConfiguration.getTeamLeaders());
         return users.stream().anyMatch(u -> u.getIdentifier().equals(user.getIdentifier()));
     }
-
 
 }
 
