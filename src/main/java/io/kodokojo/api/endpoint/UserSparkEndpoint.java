@@ -39,8 +39,6 @@ import io.kodokojo.commons.service.repository.ProjectFetcher;
 import io.kodokojo.commons.service.repository.UserFetcher;
 import io.kodokojo.commons.service.repository.UserSearcher;
 import io.kodokojo.commons.service.repository.search.Criteria;
-import io.kodokojo.commons.service.repository.search.UserSearchDto;
-import io.kodokojo.commons.spark.JsonTransformer;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,11 +47,14 @@ import spark.Response;
 
 import javax.inject.Inject;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import static java.util.Objects.requireNonNull;
 import static org.apache.commons.lang.StringUtils.isBlank;
+import static org.apache.commons.lang.StringUtils.isNotBlank;
 import static spark.Spark.*;
 
 public class UserSparkEndpoint extends AbstractSparkEndpoint {
@@ -130,7 +131,20 @@ public class UserSparkEndpoint extends AbstractSparkEndpoint {
             halt(400, "'q' criteria parameter must be defined.");
             return "";
         }
-        return userSearcher.searchUserByCriterion(requester.getOrganisationIds(), new Criteria("global", criteria)).getOrElse(new ArrayList<>());
+
+        String organisationId = request.queryParams("oid");
+
+        Set<String> organisationIds = requester.getOrganisationIds();
+        if (isNotBlank(organisationId)) {
+            if (organisationIds.contains(organisationId)) {
+                organisationIds = Collections.singleton(organisationId);
+            } else {
+                halt(403, "You aren't allowed to search in organisation with id '" + organisationId + "'.");
+                return "";
+            }
+        }
+
+        return userSearcher.searchUserByCriterion(organisationIds, new Criteria("global", criteria)).getOrElse(new ArrayList<>());
     }
 
     private Object getUserById(Request request) {
