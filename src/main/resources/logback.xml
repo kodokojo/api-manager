@@ -31,7 +31,7 @@
 
     <logger name="io.kodokojo" level="DEBUG"/>
     <logger name="akka" level="TRACE"/>
-    <logger name="spark" level="TRACE"/>
+    <!--logger name="spark" level="TRACE"/-->
 
     <root level="WARN">
         <appender-ref ref="STDOUT" />

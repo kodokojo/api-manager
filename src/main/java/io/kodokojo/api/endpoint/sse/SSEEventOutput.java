@@ -20,7 +20,14 @@ public class SSEEventOutput implements EventSource {
             throw new IllegalArgumentException("data must be defined.");
         }
         if (emitter != null) {
-            emitter.data(data);
+            try {
+                emitter.data(data);
+            } catch (IllegalStateException e) {
+                if (SSE_EXCEPTION_MESSAGE.equals(e.getMessage())) {
+                    throw new IOException(e);
+                }
+                throw e;
+            }
             return true;
         }
         return false;
@@ -31,4 +38,6 @@ public class SSEEventOutput implements EventSource {
         this.emitter.close();
         this.emitter = null;
     }
+
+    private static final String SSE_EXCEPTION_MESSAGE = "AsyncContext completed and/or Request lifecycle recycled";
 }
