@@ -140,7 +140,6 @@ public class UserSparkEndpoint extends AbstractSparkEndpoint {
                 organisationIds = Collections.singleton(organisationId);
             } else {
                 halt(403, "You aren't allowed to search in organisation with id '" + organisationId + "'.");
-                return "";
             }
         }
 
@@ -152,7 +151,8 @@ public class UserSparkEndpoint extends AbstractSparkEndpoint {
         String identifier = request.params(":id");
         User user = userFetcher.getUserByIdentifier(identifier);
         if (user != null) {
-            if (user.getOrganisationIds().equals(requester.getOrganisationIds())) {
+            if (user.getOrganisationIds().stream()
+                    .anyMatch(userOrgaId -> requester.getOrganisationIds().contains(userOrgaId))) {
                 if (!user.equals(requester)) {
                     user = new User(user.getIdentifier(), user.getOrganisationIds(), user.getName(), user.getUsername(), user.getEmail(), "", user.getSshPublicKey(), user.isRoot());
                 }

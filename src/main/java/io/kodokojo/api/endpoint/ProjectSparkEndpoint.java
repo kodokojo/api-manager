@@ -28,14 +28,11 @@ import io.kodokojo.commons.event.payload.OrganisationChangeUserRequest;
 import io.kodokojo.commons.event.payload.OrganisationCreationReply;
 import io.kodokojo.commons.event.payload.ProjectConfigurationChangeUserRequest;
 import io.kodokojo.commons.event.payload.TypeChange;
-import io.kodokojo.commons.model.Organisation;
-import io.kodokojo.commons.model.Project;
-import io.kodokojo.commons.model.ProjectConfiguration;
-import io.kodokojo.commons.model.User;
+import io.kodokojo.commons.model.*;
+import io.kodokojo.commons.service.actor.message.BrickStateEvent;
 import io.kodokojo.commons.service.repository.OrganisationFetcher;
 import io.kodokojo.commons.service.repository.ProjectFetcher;
 import org.apache.commons.collections4.IteratorUtils;
-import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import spark.Request;
@@ -43,12 +40,14 @@ import spark.Response;
 
 import javax.inject.Inject;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static java.util.Objects.requireNonNull;
+import static org.apache.commons.lang.StringUtils.isBlank;
 import static spark.Spark.*;
 
 public class ProjectSparkEndpoint extends AbstractSparkEndpoint {
@@ -72,6 +71,7 @@ public class ProjectSparkEndpoint extends AbstractSparkEndpoint {
 
     @Override
     public void configure() {
+
         post(BASE_API + "/projectconfig", JSON_CONTENT_TYPE, this::createProjectConfiguration);
 
         get(BASE_API + "/projectconfig/:id", JSON_CONTENT_TYPE, (request, response) -> getProjectConfigurationById(request), jsonResponseTransformer);
@@ -86,6 +86,8 @@ public class ProjectSparkEndpoint extends AbstractSparkEndpoint {
         post(BASE_API + "/project/:id", JSON_CONTENT_TYPE, (this::startProject));
 
         get(BASE_API + "/project/:id", JSON_CONTENT_TYPE, ((request, response) -> getProjectById(request)), jsonResponseTransformer);
+
+        patch(BASE_API + "/project/:id/:stackName/:brickName/:state", JSON_CONTENT_TYPE, (request, response) -> updateBrickState(request), jsonResponseTransformer);
 
         //  --  Organisation
 
@@ -105,6 +107,72 @@ public class ProjectSparkEndpoint extends AbstractSparkEndpoint {
             return organisationChangeAdmin(request, typeChange);
         }, jsonResponseTransformer);
 
+    }
+
+    private Object updateBrickState(Request request) {
+        String identifier = request.params(":id");
+        String stackName = request.params(":stackName");
+        String brickName = request.params(":brickName");
+        String stateParam = request.params(":state");
+        if (isBlank(identifier) || isBlank(stackName) || isBlank(brickName) || isBlank(stateParam)) {
+            halt(400, "Invalid parameter to change brick state.");
+        }
+        User requester = getRequester(request);
+
+        Project project = projectFetcher.getProjectByIdentifier(identifier);
+        if (project == null) {
+            halt(404, "Unable to found project with id '" + identifier + "'.");
+            return "";
+        }
+
+        ProjectConfiguration projectConfiguration = projectFetcher.getProjectConfigurationById(project.getProjectConfigurationIdentifier());
+        if (projectConfiguration == null) {
+            LOGGER.error("Unable to found projectConfiguration with id '{}' from project '{}' with id '{}'.", project.getProjectConfigurationIdentifier(), project.getName(), identifier);
+            halt(500, "Unable to found a projectConfiguration for project with id " + identifier);
+            return "";
+        }
+
+        Organisation organisation = organisationFetcher.getOrganisationById(projectConfiguration.getEntityIdentifier());
+        if (organisation == null) {
+            LOGGER.error("Unable to found organisation with id '{}' from project '{}' with id '{}'.", projectConfiguration.getEntityIdentifier(), project.getName(), identifier);
+            halt(500, "Unable to found a organisation for project with id " + identifier);
+            return "";
+        }
+
+        if (requester.isRoot() && organisation.userIsAdmin(requester.getIdentifier())) {
+
+            Iterator<BrickConfiguration> defaultBrickConfigurations = projectConfiguration.getDefaultBrickConfigurations();
+            BrickConfiguration brickConfiguration = null;
+            while (defaultBrickConfigurations.hasNext() && brickConfiguration == null) {
+                BrickConfiguration current = defaultBrickConfigurations.next();
+                if (current.getName().equals(brickName)) {
+                    brickConfiguration = current;
+                }
+            }
+            if (brickConfiguration == null) {
+                halt(404, "Unable to found brick named '" + brickName + "' in project '" + project.getName() + "'.");
+                return "";
+            }
+            String brickType = brickConfiguration.getType().name();
+            String version = brickConfiguration.getVersion();
+
+            EventBuilder eventBuilder = eventBuilderFactory.create();
+            eventBuilder.setEventType(Event.BRICK_STATE_UPDATE);
+            BrickStateEvent brickStateEvent = new BrickStateEvent(projectConfiguration.getIdentifier(),
+                    stackName,
+                    brickType,
+                    brickName,
+                    BrickStateEvent.State.valueOf(stateParam),
+                    version
+            );
+            eventBuilder.setPayload(brickStateEvent);
+            eventBuilder.addCustomHeader(Event.REQUESTER_ID_CUSTOM_HEADER, requester.getIdentifier());
+            eventBus.send(eventBuilder.build());
+        } else {
+            halt(403, "You aren't alloed to change state of this project.");
+        }
+
+        return "";
     }
 
     private Object organisationChangeAdmin(Request request, OrganisationChangeUserRequest.TypeChange typeChange) {
@@ -239,7 +307,9 @@ public class ProjectSparkEndpoint extends AbstractSparkEndpoint {
         }
         User requester = getRequester(request);
 
-        if (userIsUser(requester, projectConfiguration)) {
+        Organisation organisation = organisationFetcher.getOrganisationById(projectConfiguration.getEntityIdentifier());
+
+        if (organisation.userIsAdmin(requester.getIdentifier()) || userIsUser(requester, projectConfiguration)) {
             return new ProjectConfigDto(projectConfiguration);
         } else {
             halt(403, "You have not right to lookup projectConfiguration id " + identifier + ".");
@@ -324,7 +394,7 @@ public class ProjectSparkEndpoint extends AbstractSparkEndpoint {
         }
         if (userIsAdmin(requester, projectConfiguration)) {
             String projectId = projectFetcher.getProjectIdByProjectConfigurationId(projectConfigurationId);
-            if (StringUtils.isBlank(projectId)) {
+            if (isBlank(projectId)) {
 
                 EventBuilder eventBuilder = eventBuilderFactory.create()
                         .setEventType(Event.PROJECTCONFIG_START_REQUEST)
@@ -360,7 +430,8 @@ public class ProjectSparkEndpoint extends AbstractSparkEndpoint {
             return "";
         }
         ProjectConfiguration projectConfiguration = projectFetcher.getProjectConfigurationById(project.getProjectConfigurationIdentifier());
-        if (userIsUser(requester, projectConfiguration)) {
+        Organisation organisation = organisationFetcher.getOrganisationById(projectConfiguration.getEntityIdentifier());
+        if (organisation.userIsAdmin(requester.getIdentifier()) || userIsUser(requester, projectConfiguration)) {
             ProjectDto projectDto = new ProjectDto(project);
             return projectDto;
         } else {

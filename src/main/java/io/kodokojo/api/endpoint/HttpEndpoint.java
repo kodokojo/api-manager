@@ -83,7 +83,8 @@ public class HttpEndpoint extends AbstractSparkEndpoint implements SparkApplicat
 
     protected void logging(Request request, Response response) {
 
-        if (LOGGER.isDebugEnabled()) {
+        if (LOGGER.isDebugEnabled() &&
+                !requestMatch("GET", HttpHealthCheckEndpoint.HEALTHCHECK_PATH, request)) {
             LOGGER.debug("Ip {} request url {}", request.ip(), request.url());
             if (LOGGER.isTraceEnabled()) {
                 LOGGER.trace("Request schemas {}", request.scheme());

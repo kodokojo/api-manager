@@ -1,7 +1,5 @@
 package io.kodokojo.api.endpoint.sse;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import io.kodokojo.api.endpoint.BasicAuthenticator;
 import io.kodokojo.commons.event.Event;
 import io.kodokojo.commons.event.EventBus;
@@ -99,18 +97,15 @@ public class SseServlet extends EventSourceServlet implements EventBus.EventList
                         }
                     });
                     return Try.success(true);
+                } else if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug("Receive event which contain projectConfigurationId '{}' which not allow to get a ProjectConfiguration.", projectConfigurationIdentifier);
                 }
+            } else if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("Receive an event which not contain custom header '{}'.", Event.PROJECTCONFIGURATION_ID_CUSTOM_HEADER);
             }
+        } else if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("Receive event with type '{}' which isn't in white list: {}", event.getEventType(), EVENT_TYPE_WHITE_LIST);
         }
-        /*
-        caches.values().stream().forEach(u -> {
-            try {
-                u.sseEventOutput.send(data);
-            } catch (IOException e) {
-                LOGGER.error("Unable to send following event to user '{}': \n{}", u.user.getUsername(), Event.convertToPrettyJson(event), e);
-            }
-        });
-        */
         return Try.success(false);
     }
 
