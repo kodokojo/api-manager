@@ -328,8 +328,9 @@ public class ProjectSparkEndpoint extends AbstractSparkEndpoint {
             halt(404);
             return "";
         }
+        Organisation organisation = organisationFetcher.getOrganisationById(projectConfiguration.getEntityIdentifier());
 
-        if (userIsAdmin(requester, projectConfiguration)) {
+        if (organisation.userIsAdmin(requester.getIdentifier()) ||userIsAdmin(requester, projectConfiguration)) {
 
             List<String> userIdsToAdd = new ArrayList<>();
             JsonParser parser = new JsonParser();
@@ -362,7 +363,9 @@ public class ProjectSparkEndpoint extends AbstractSparkEndpoint {
             return "";
         }
 
-        if (userIsAdmin(requester, projectConfiguration)) {
+        Organisation organisation = organisationFetcher.getOrganisationById(projectConfiguration.getEntityIdentifier());
+
+        if (organisation.userIsAdmin(requester.getIdentifier()) ||userIsAdmin(requester, projectConfiguration)) {
 
             List<String> userIdsToRemove = new ArrayList<>();
             JsonParser parser = new JsonParser();

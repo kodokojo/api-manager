@@ -222,10 +222,10 @@ public class UserSparkEndpoint extends AbstractSparkEndpoint {
         }
         eventBuilder.setPayload(new UserCreationRequest(identifier, email, username, organisationId, isRoot));
 
-        Event reply = eventBus.request(eventBuilder.build(), 30, TimeUnit.SECONDS);
+        Event reply = eventBus.request(eventBuilder.build(), 10, TimeUnit.SECONDS);
 
         if (reply == null) {
-            halt(500, "Unable to create user " + username + " in less than 30 seconds.");
+            halt(500, "Unable to create user " + username + " in less than 10 seconds.");
         } else {
             UserCreationReply userCreationReply = reply.getPayload(UserCreationReply.class);
             if (userCreationReply.isUserInWaitingList()) {
@@ -277,10 +277,12 @@ public class UserSparkEndpoint extends AbstractSparkEndpoint {
             if (reply == null) {
                 halt(500, "Unable to update User");
             } else {
+                /*
                 JsonParser parser = new JsonParser();
                 String replyPayload = reply.getPayload();
                 JsonObject replyRoot = (JsonObject) parser.parse(replyPayload);
-                Boolean success = readBooleanFromJson(replyRoot, "state").orElse(Boolean.FALSE);
+                */
+                Boolean success = reply.getPayload(Boolean.class);
                 if (success) {
                     halt(200);
                 } else {
