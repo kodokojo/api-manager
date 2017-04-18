@@ -310,7 +310,11 @@ public class ProjectSparkEndpoint extends AbstractSparkEndpoint {
         Organisation organisation = organisationFetcher.getOrganisationById(projectConfiguration.getEntityIdentifier());
 
         if (organisation.userIsAdmin(requester.getIdentifier()) || userIsUser(requester, projectConfiguration)) {
-            return new ProjectConfigDto(projectConfiguration);
+            ProjectConfigDto projectConfigDto = new ProjectConfigDto(projectConfiguration);
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("ProjectConfiguration with Id '{}':\n{}", identifier, new GsonBuilder().setPrettyPrinting().create().toJson(projectConfigDto));
+            }
+            return projectConfigDto;
         } else {
             halt(403, "You have not right to lookup projectConfiguration id " + identifier + ".");
         }
